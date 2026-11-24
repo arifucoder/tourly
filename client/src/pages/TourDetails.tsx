@@ -27,8 +27,6 @@ import { useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 
-/* ───────── helpers ───────── */
-
 const formatDate = (date: string) =>
 	new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
@@ -37,7 +35,7 @@ const formatPrice = (amount: number) => `৳${amount.toLocaleString("en-IN")}`;
 const getDays = (start: string, end: string) =>
 	Math.round((new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-const DEFAULT_MAX_GUESTS = 10; // used when tour has no maxGuest
+const DEFAULT_MAX_GUESTS = 10;
 
 function Fact({ icon, iconCls, label, value }: { icon: ReactNode; iconCls: string; label: string; value: string }) {
 	return (
@@ -94,8 +92,6 @@ function TourDetailsSkeleton() {
 	);
 }
 
-/* ───────── page ───────── */
-
 export default function TourDetails() {
 	const { slug } = useParams();
 	const {
@@ -117,10 +113,8 @@ export default function TourDetails() {
 
 	const [guests, setGuests] = useState(1);
 
-	/* ── Loading ── */
 	if (isLoading) return <TourDetailsSkeleton />;
 
-	/* ── Not found / error ── */
 	if (isError || !tour) {
 		const notFound = (error as TApiError | undefined)?.status === 404 || (!isError && !tour);
 		return (
@@ -151,7 +145,6 @@ export default function TourDetails() {
 		);
 	}
 
-	/* ── Derived values ── */
 	const images = tour.images ?? [];
 	const hasDates = Boolean(tour.startDate && tour.endDate);
 	const days = hasDates ? getDays(tour.startDate!, tour.endDate!) : 0;
@@ -214,12 +207,10 @@ export default function TourDetails() {
 				toast.success("Link copied to clipboard");
 			}
 		} catch {
-			// user closed the share sheet — nothing to do
 		}
 	};
 
 	const handleBook = async () => {
-		// not logged in → login, then come back here
 		if (!isLoggedIn) {
 			toast.info("Please log in to book this tour");
 			navigate("/login", { state: { from: location.pathname } });
@@ -250,7 +241,6 @@ export default function TourDetails() {
 
 	return (
 		<div className="bg-background">
-			{/* ───── Header + gallery ───── */}
 			<div className="mx-auto flex max-w-[1200px] flex-col gap-5.5 px-4 pt-4 sm:px-10">
 				<nav aria-label="Breadcrumb" className="flex flex-wrap gap-2 text-[13.5px] text-muted-foreground">
 					<Link to="/" className="hover:text-foreground">
@@ -305,7 +295,6 @@ export default function TourDetails() {
 					</Button>
 				</div>
 
-				{/* Gallery */}
 				{images.length <= 1 ? (
 					<div className="flex h-64 items-center justify-center overflow-hidden rounded-2xl bg-accent text-muted-foreground sm:h-[454px]">
 						{images[0] ? (
@@ -322,7 +311,6 @@ export default function TourDetails() {
 								className={[
 									"overflow-hidden rounded-2xl bg-accent",
 									i === 0 ? "h-64 sm:row-span-2 sm:h-auto" : "hidden sm:block",
-									// 2 images → second one spans the rest
 									images.length === 2 && i === 1 ? "sm:col-span-2 sm:row-span-2" : "",
 								].join(" ")}
 							>
@@ -338,10 +326,8 @@ export default function TourDetails() {
 				)}
 			</div>
 
-			{/* ───── Content + booking card ───── */}
 			<div className="mx-auto flex max-w-[1200px] flex-col items-start gap-12 px-4 pt-11 pb-24 sm:px-10 lg:flex-row">
 				<main className="flex w-full min-w-0 flex-1 flex-col gap-11">
-					{/* Facts */}
 					{facts.length > 0 && (
 						<dl className="grid grid-cols-1 gap-x-7 gap-y-6 rounded-xl bg-card p-6.5 shadow-card sm:grid-cols-2 xl:grid-cols-3">
 							{facts.map((fact) => (
@@ -350,7 +336,6 @@ export default function TourDetails() {
 						</dl>
 					)}
 
-					{/* About */}
 					{tour.description && (
 						<section className="flex flex-col gap-3.5">
 							<h2 className="text-2xl font-bold sm:text-[26px]">About this tour</h2>
@@ -360,7 +345,6 @@ export default function TourDetails() {
 						</section>
 					)}
 
-					{/* Tour plan */}
 					{tour.tourPlan && tour.tourPlan.length > 0 && (
 						<section className="flex flex-col gap-5.5">
 							<h2 className="text-2xl font-bold sm:text-[26px]">Tour plan</h2>
@@ -383,7 +367,6 @@ export default function TourDetails() {
 						</section>
 					)}
 
-					{/* Included / Excluded / Amenities */}
 					{Boolean(tour.included?.length || tour.excluded?.length || tour.amenities?.length) && (
 						<section className="grid grid-cols-1 gap-4.5 sm:grid-cols-2 xl:grid-cols-3">
 							{tour.included && tour.included.length > 0 && (
@@ -411,7 +394,6 @@ export default function TourDetails() {
 					)}
 				</main>
 
-				{/* Booking card */}
 				<aside
 					aria-label="Book this tour"
 					className="flex w-full flex-col gap-4.5 rounded-xl bg-card p-6.5 shadow-card lg:sticky lg:top-6 lg:w-[370px] lg:shrink-0"
@@ -493,7 +475,6 @@ export default function TourDetails() {
 						</div>
 					)}
 
-					{/* TODO: connect to booking (pass tour._id + guests) */}
 					<Button
 						type="button"
 						onClick={handleBook}

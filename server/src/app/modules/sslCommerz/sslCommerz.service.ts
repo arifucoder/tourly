@@ -45,10 +45,9 @@ const sslPaymentInit = async (payload: ISSLCommerz) => {
 			method: "POST",
 			url: envVars.SSL.SSL_PAYMENT_API,
 			data: data,
-			headers: { "Content-Type": "application/x-www-form-urlencoded" }, // eita kno laglo?
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
 		});
 
-		// SSLCommerz returns { status: "SUCCESS" | "FAILED", GatewayPageURL, failedreason, ... }
 		if (response.data?.status !== "SUCCESS" || !response.data?.GatewayPageURL) {
 			throw new Error(response.data?.failedreason || "Could not start payment.");
 		}

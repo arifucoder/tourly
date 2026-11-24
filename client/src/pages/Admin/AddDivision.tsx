@@ -28,7 +28,6 @@ export default function AddDivision() {
 
 	return (
 		<div className="flex w-full flex-col gap-5">
-			{/* Header + Add button */}
 			<div className="flex flex-wrap items-end justify-between gap-3.5">
 				<div>
 					<h1 className="text-3xl font-bold tracking-tight">Divisions</h1>
@@ -39,7 +38,6 @@ export default function AddDivision() {
 				<AddDivisionModal />
 			</div>
 
-			{/* Table */}
 			<section className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
 				<div className="overflow-x-auto">
 					<table className="w-full min-w-170 border-collapse text-left text-sm">
@@ -64,7 +62,6 @@ export default function AddDivision() {
 						</thead>
 
 						<tbody className={isFetching && !isLoading ? "opacity-60 transition-opacity" : ""}>
-							{/* ── Loading ── */}
 							{isLoading &&
 								Array.from({ length: 5 }).map((_, i) => (
 									<tr key={i} className="border-t border-border">
@@ -92,7 +89,6 @@ export default function AddDivision() {
 									</tr>
 								))}
 
-							{/* ── Error ── */}
 							{isError && (
 								<tr className="border-t border-border">
 									<td colSpan={COLS} className="px-4.5 py-14">
@@ -113,7 +109,6 @@ export default function AddDivision() {
 								</tr>
 							)}
 
-							{/* ── Empty ── */}
 							{!isLoading && !isError && divisions.length === 0 && (
 								<tr className="border-t border-border">
 									<td colSpan={COLS} className="px-4.5 py-14">
@@ -132,14 +127,12 @@ export default function AddDivision() {
 								</tr>
 							)}
 
-							{/* ── Data ── */}
 							{!isLoading &&
 								!isError &&
 								divisions.map((division, index) => (
 									<tr key={division._id} className="border-t border-border transition-colors hover:bg-muted/60">
 										<td className="px-4.5 py-3 text-muted-foreground">{index + 1}</td>
 
-										{/* Thumbnail + name */}
 										<td className="px-4.5 py-3">
 											<div className="flex items-center gap-3">
 												<div className="flex h-11 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-accent text-accent-foreground">
@@ -201,7 +194,6 @@ export default function AddDivision() {
 					</table>
 				</div>
 
-				{/* Footer */}
 				{!isLoading && !isError && divisions.length > 0 && (
 					<div className="flex items-center justify-between gap-3 border-t border-border bg-muted px-4.5 py-3 text-[13.5px] text-muted-foreground">
 						<span>Showing {divisions.length} divisions</span>

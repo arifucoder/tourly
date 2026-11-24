@@ -10,7 +10,6 @@ export type TOption = { value: string; label: string };
 type SearchableSelectProps = {
 	id?: string;
 	options: TOption[];
-	/** controlled value (optional) — if not given, component keeps its own state */
 	value?: string;
 	onChange?: (value: string) => void;
 	placeholder?: string;
@@ -40,14 +39,13 @@ export default function SearchableSelect({
 	const selected = options.find((option) => option.value === selectedValue);
 
 	const handleSelect = (newValue: string) => {
-		const next = newValue === selectedValue ? "" : newValue; // click again → clear
+		const next = newValue === selectedValue ? "" : newValue;
 		if (value === undefined) setInnerValue(next);
 		onChange?.(next);
 		setOpen(false);
 	};
 
 	return (
-		// modal → lets the list scroll when used inside a Dialog
 		<Popover open={open} onOpenChange={setOpen} modal>
 			<PopoverTrigger asChild>
 				<Button
@@ -78,7 +76,7 @@ export default function SearchableSelect({
 							{options.map((option) => (
 								<CommandItem
 									key={option.value}
-									value={option.label} // search matches the label
+									value={option.label}
 									onSelect={() => handleSelect(option.value)}
 									className="py-2"
 								>

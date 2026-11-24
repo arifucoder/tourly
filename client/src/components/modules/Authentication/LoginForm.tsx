@@ -57,7 +57,6 @@ export default function LoginForm() {
 			const error = err as TApiError;
 			console.error(error);
 
-			// backend-এ unverified-এর জন্য যে status/message আসে, সেটা দিয়ে চেক করুন
 			if (error.status === 401 && error.data?.message?.toLowerCase().includes("verif")) {
 				toast.error("Your account is not verified");
 				navigate("/verify", { state: data.email });
@@ -72,7 +71,6 @@ export default function LoginForm() {
 
 	return (
 		<div className="flex flex-col px-4 py-8 sm:px-6">
-			{/* Mobile-only logo (image panel hidden on small screens) */}
 			<div className="lg:hidden">
 				<Logo />
 			</div>
@@ -124,7 +122,6 @@ export default function LoginForm() {
 							render={({ field, fieldState }) => (
 								<Field data-invalid={fieldState.invalid}>
 									<FieldLabel htmlFor="password">Password</FieldLabel>
-									{/* absolute button-এর জন্য relative wrapper লাগবে */}
 									<div className="relative">
 										<Input
 											{...field}

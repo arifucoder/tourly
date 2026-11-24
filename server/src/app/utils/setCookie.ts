@@ -1,4 +1,3 @@
-// src/app/utils/setCookie.ts
 import type { CookieOptions, Response } from "express";
 import { envVars } from "../config/env";
 
@@ -9,11 +8,10 @@ export interface AuthTokens {
 
 const isProduction = envVars.NODE_ENV === "production";
 
-// set আর clear — দুই জায়গায় একই option লাগবে, তাই export
 export const authCookieOptions: CookieOptions = {
 	httpOnly: true,
-	secure: true, // local (HTTP) → false, production (HTTPS) → true
-	sameSite: isProduction ? "none" : "lax", // আলাদা domain-এ cookie পাঠাতে "none"
+	secure: true,
+	sameSite: isProduction ? "none" : "lax",
 };
 
 export const setAuthCookie = (res: Response, tokenInfo: AuthTokens) => {

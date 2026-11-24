@@ -26,8 +26,6 @@ const SORT_OPTIONS = [
 	{ value: "-costFrom", label: "Price: high to low" },
 ];
 
-/* ───────── helpers ───────── */
-
 const formatPrice = (amount?: number) => (amount === undefined ? "—" : amount.toLocaleString("en-IN"));
 
 const shortDate = (date: string) => new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
@@ -50,7 +48,6 @@ const getTourMeta = (tour: ITour) => {
 	return parts.join(" · ");
 };
 
-// 1 … 4 5 6 … 10
 const getPageNumbers = (current: number, total: number): (number | "…")[] => {
 	if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
 	const pages: (number | "…")[] = [1];
@@ -63,7 +60,6 @@ const getPageNumbers = (current: number, total: number): (number | "…")[] => {
 
 type TFilterOption = { _id: string; name: string; count: number };
 
-// unique { _id, name, count } list from tours, sorted by name
 const buildOptions = (tours: ITour[], key: "division" | "tourType"): TFilterOption[] => {
 	const map = new Map<string, TFilterOption>();
 	tours.forEach((tour) => {
@@ -78,8 +74,6 @@ const buildOptions = (tours: ITour[], key: "division" | "tourType"): TFilterOpti
 
 const selectCls =
 	"h-11.5 w-full rounded-lg border-[1.5px] border-border bg-background px-3.5 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
-
-/* ───────── filters panel (used in sidebar + mobile sheet) ───────── */
 
 type FiltersProps = {
 	divisions: TFilterOption[];
@@ -121,7 +115,6 @@ function Filters({
 				</Button>
 			</div>
 
-			{/* Division (single choice) */}
 			{divisions.length > 0 && (
 				<fieldset className="flex flex-col gap-0.5">
 					<legend className="mb-2.5 text-sm font-semibold">Division</legend>
@@ -146,7 +139,6 @@ function Filters({
 				</fieldset>
 			)}
 
-			{/* Tour type (single choice) */}
 			{tourTypes.length > 0 && (
 				<fieldset>
 					<legend className="mb-2.5 text-sm font-semibold">Tour type</legend>
@@ -178,8 +170,6 @@ function Filters({
 	);
 }
 
-/* ───────── page ───────── */
-
 export default function Tours() {
 	const [searchInput, setSearchInput] = useState("");
 	const [searchTerm, setSearchTerm] = useState("");
@@ -188,7 +178,6 @@ export default function Tours() {
 	const [sort, setSort] = useState("-createdAt");
 	const [page, setPage] = useState(1);
 
-	// only send filled params
 	const params = {
 		page,
 		limit: LIMIT,
@@ -200,7 +189,6 @@ export default function Tours() {
 
 	const { data, isLoading, isError, isFetching, refetch } = useGetToursQuery(params);
 
-	// all tours, only division + tourType → for sidebar options & counts
 	const { data: optionData } = useGetToursQuery({ limit: 1000, fields: "division,tourType" });
 
 	const { divisions, tourTypes, totalTours } = useMemo(() => {
@@ -218,7 +206,6 @@ export default function Tours() {
 
 	const activeFilterCount = [division, tourType].filter(Boolean).length;
 
-	// any filter change → back to page 1
 	const handleSearch = (e: FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		setSearchTerm(searchInput.trim());
@@ -261,7 +248,6 @@ export default function Tours() {
 
 	return (
 		<div className="bg-background">
-			{/* ───── Hero + search ───── */}
 			<section className="bg-muted">
 				<div className="mx-auto flex max-w-[1200px] flex-col gap-4.5 px-4 py-12 sm:px-10">
 					<nav aria-label="Breadcrumb" className="flex gap-2 text-[13.5px] text-muted-foreground">
@@ -300,16 +286,12 @@ export default function Tours() {
 				</div>
 			</section>
 
-			{/* ───── Filters + results ───── */}
 			<div className="mx-auto flex max-w-[1200px] items-start gap-8 px-4 pt-10 pb-22 sm:px-10">
-				{/* Filters (desktop) */}
 				<aside aria-label="Filters" className="hidden w-70 shrink-0 rounded-xl bg-card p-6 shadow-card lg:block">
 					<Filters {...filterProps} idPrefix="desk" />
 				</aside>
 
-				{/* Results */}
 				<main className="flex min-w-0 flex-1 flex-col gap-6">
-					{/* Toolbar */}
 					<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 						<p>
 							{isLoading ? (
@@ -325,7 +307,6 @@ export default function Tours() {
 						</p>
 
 						<div className="flex items-center gap-2.5">
-							{/* Filters (mobile) */}
 							<Sheet>
 								<SheetTrigger asChild>
 									<Button
@@ -363,7 +344,6 @@ export default function Tours() {
 						</div>
 					</div>
 
-					{/* ── Loading ── */}
 					{isLoading && (
 						<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
 							{Array.from({ length: 6 }).map((_, i) => (
@@ -380,7 +360,6 @@ export default function Tours() {
 						</div>
 					)}
 
-					{/* ── Error ── */}
 					{isError && (
 						<div className="flex flex-col items-center gap-3 rounded-xl bg-card px-6 py-16 text-center shadow-card">
 							<span className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
@@ -397,7 +376,6 @@ export default function Tours() {
 						</div>
 					)}
 
-					{/* ── Empty ── */}
 					{!isLoading && !isError && tours.length === 0 && (
 						<div className="flex flex-col items-center gap-3 rounded-xl bg-card px-6 py-16 text-center shadow-card">
 							<span className="flex size-12 items-center justify-center rounded-full bg-accent text-accent-foreground">
@@ -413,7 +391,6 @@ export default function Tours() {
 						</div>
 					)}
 
-					{/* ── Cards ── */}
 					{!isLoading && !isError && tours.length > 0 && (
 						<div
 							className={[
@@ -427,7 +404,6 @@ export default function Tours() {
 									to={`/tours/${tour.slug}`}
 									className="group flex flex-col overflow-hidden rounded-xl bg-card text-foreground shadow-card transition-shadow hover:shadow-lg focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
 								>
-									{/* Image */}
 									<div className="relative flex h-50 items-center justify-center overflow-hidden bg-accent text-muted-foreground">
 										{tour.images?.[0] ? (
 											<img
@@ -446,7 +422,6 @@ export default function Tours() {
 										)}
 									</div>
 
-									{/* Body */}
 									<div className="flex flex-1 flex-col gap-1.5 px-4.5 pt-4 pb-4.5">
 										{(tour.location || tour.division) && (
 											<span className="flex items-center gap-1 text-[12.5px] font-medium text-primary">
@@ -468,7 +443,6 @@ export default function Tours() {
 						</div>
 					)}
 
-					{/* ── Pagination ── */}
 					{!isLoading && !isError && totalPage > 1 && (
 						<nav aria-label="Pagination" className="flex flex-wrap justify-center gap-2 pt-4">
 							<Button

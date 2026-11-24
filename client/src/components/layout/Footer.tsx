@@ -35,7 +35,6 @@ export default function Footer() {
 		<footer className="w-full bg-background pb-7 pt-20">
 			<div className="mx-auto flex max-w-300 flex-col gap-14 px-4 sm:px-10">
 				<div className="grid grid-cols-1 gap-9 sm:grid-cols-2 lg:grid-cols-4">
-					{/* Brand */}
 					<div className="flex flex-col gap-3.5">
 						<Logo />
 						<p className="max-w-65 text-sm text-muted-foreground">
@@ -43,7 +42,6 @@ export default function Footer() {
 						</p>
 					</div>
 
-					{/* Link columns */}
 					{footerSections.map((section) => (
 						<nav key={section.title} aria-label={section.title} className="flex flex-col gap-3">
 							<strong className="text-[15px] font-semibold text-foreground">{section.title}</strong>
@@ -62,7 +60,6 @@ export default function Footer() {
 					))}
 				</div>
 
-				{/* Bottom bar */}
 				<div className="flex flex-col gap-3 border-t border-border pt-5.5 text-[13px] sm:flex-row sm:items-center sm:justify-between">
 					<span className="text-muted-foreground">© 2026 Phovia Tour. All rights reserved.</span>
 					<div className="flex gap-6">

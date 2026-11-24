@@ -17,7 +17,6 @@ import type { ReactNode } from "react";
 interface IProps {
 	children: ReactNode;
 	onConfirm: () => void;
-	/** Name of the item, e.g. "Sylhet" → title becomes: Delete “Sylhet”? */
 	itemName?: string;
 	title?: string;
 	description?: string;

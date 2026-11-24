@@ -53,7 +53,6 @@ export default function Tours() {
 			await removeTour(id).unwrap();
 			toast.success("Tour deleted", { id: toastId });
 
-			// if the last item on this page was deleted, go back one page
 			if (tours.length === 1 && page > 1) setPage((p) => p - 1);
 		} catch (err) {
 			const error = err as TApiError;
@@ -66,7 +65,6 @@ export default function Tours() {
 
 	return (
 		<div className="flex w-full flex-col gap-5">
-			{/* Header + Add button */}
 			<div className="flex flex-wrap items-end justify-between gap-3.5">
 				<div>
 					<h1 className="text-3xl font-bold tracking-tight">Tours</h1>
@@ -82,7 +80,6 @@ export default function Tours() {
 				</Button>
 			</div>
 
-			{/* Table */}
 			<section className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
 				<div className="overflow-x-auto">
 					<table className="w-full min-w-[960px] border-collapse text-left text-sm">
@@ -116,7 +113,6 @@ export default function Tours() {
 						</thead>
 
 						<tbody className={isFetching && !isLoading ? "opacity-60 transition-opacity" : ""}>
-							{/* ── Loading ── */}
 							{isLoading &&
 								Array.from({ length: 5 }).map((_, i) => (
 									<tr key={i} className="border-t border-border">
@@ -156,7 +152,6 @@ export default function Tours() {
 									</tr>
 								))}
 
-							{/* ── Error ── */}
 							{isError && (
 								<tr className="border-t border-border">
 									<td colSpan={COLS} className="px-4.5 py-14">
@@ -177,7 +172,6 @@ export default function Tours() {
 								</tr>
 							)}
 
-							{/* ── Empty ── */}
 							{!isLoading && !isError && tours.length === 0 && (
 								<tr className="border-t border-border">
 									<td colSpan={COLS} className="px-4.5 py-14">
@@ -202,14 +196,12 @@ export default function Tours() {
 								</tr>
 							)}
 
-							{/* ── Data ── */}
 							{!isLoading &&
 								!isError &&
 								tours.map((tour, index) => (
 									<tr key={tour._id} className="border-t border-border transition-colors hover:bg-muted/60">
 										<td className="px-4.5 py-3 text-muted-foreground">{(page - 1) * LIMIT + index + 1}</td>
 
-										{/* Cover + title + location */}
 										<td className="px-4.5 py-3">
 											<div className="flex items-center gap-3">
 												<div className="flex h-12 w-18 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-accent text-accent-foreground">
@@ -303,7 +295,6 @@ export default function Tours() {
 					</table>
 				</div>
 
-				{/* Footer + pagination */}
 				{!isLoading && !isError && total > 0 && (
 					<div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted px-4.5 py-3 text-[13.5px] text-muted-foreground">
 						<span>

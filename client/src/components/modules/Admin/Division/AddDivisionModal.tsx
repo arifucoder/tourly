@@ -22,7 +22,7 @@ import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 
-const MAX_SIZE = 1 * 1024 * 1024; // 1 MB
+const MAX_SIZE = 1 * 1024 * 1024;
 const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 const formSchema = z.object({
@@ -82,7 +82,6 @@ export default function AddDivisionModal() {
 		}
 	};
 
-	// block closing while uploading, reset form when closed
 	const handleOpenChange = (value: boolean) => {
 		if (isLoading) return;
 		setOpen(value);
@@ -108,7 +107,6 @@ export default function AddDivisionModal() {
 
 				<form id="add-division" className="flex flex-col gap-4 px-5.5 py-5" onSubmit={form.handleSubmit(onSubmit)}>
 					<fieldset disabled={isLoading} className="flex flex-col gap-4 disabled:opacity-60">
-						{/* Thumbnail */}
 						<Controller
 							name="thumbnail"
 							control={form.control}
@@ -132,7 +130,6 @@ export default function AddDivisionModal() {
 							)}
 						/>
 
-						{/* Name */}
 						<Controller
 							name="name"
 							control={form.control}
@@ -154,7 +151,6 @@ export default function AddDivisionModal() {
 							)}
 						/>
 
-						{/* Slug (auto from name) */}
 						<Field className="gap-1.5">
 							<FieldLabel htmlFor="dv-slug" className="text-sm font-semibold">
 								Slug
@@ -169,7 +165,6 @@ export default function AddDivisionModal() {
 							<FieldDescription className="text-[13px]">Generated automatically from the name.</FieldDescription>
 						</Field>
 
-						{/* Description */}
 						<Controller
 							name="description"
 							control={form.control}

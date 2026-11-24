@@ -46,7 +46,6 @@ export default function Navbar() {
 			<div className="mx-auto flex h-21 max-w-300 items-center justify-between gap-6 px-4 sm:px-10">
 				<Logo />
 
-				{/* Desktop nav */}
 				<nav aria-label="Main" className="hidden items-center gap-9 lg:flex">
 					{navLinks.map((link, index) => (
 						<Fragment key={index}>
@@ -73,7 +72,6 @@ export default function Navbar() {
 					))}
 				</nav>
 
-				{/* Right side */}
 				<div className="flex items-center gap-3.5">
 					{data?.data?.email ? (
 						<Button onClick={handleLogout} className={cn(outlineBtn, "hidden sm:inline-flex")}>
@@ -94,7 +92,6 @@ export default function Navbar() {
 						</>
 					)}
 
-					{/* Mobile menu */}
 					<Sheet>
 						<SheetTrigger
 							aria-label="Open menu"

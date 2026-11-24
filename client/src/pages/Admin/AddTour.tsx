@@ -17,9 +17,7 @@ import * as z from "zod";
 
 const inputCls = "h-11 rounded-lg px-3.5 text-[15px]";
 
-/* ───────── schema ───────── */
-
-const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
+const MAX_SIZE = 2 * 1024 * 1024;
 const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 const formSchema = z
@@ -83,8 +81,6 @@ const getToday = () => {
 	return `${d.getFullYear()}-${month}-${day}`;
 };
 
-/* ───────── small helpers ───────── */
-
 function Section({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
 	return (
 		<section className="rounded-xl border border-border bg-card shadow-card">
@@ -123,7 +119,6 @@ function ListField({
 
 	const removeItem = (index: number) => onChange(value.filter((_, i) => i !== index));
 
-	// Enter → add item (not submit the whole form)
 	const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
 		if (e.key === "Enter") {
 			e.preventDefault();
@@ -186,13 +181,10 @@ function ListField({
 	);
 }
 
-/* ───────── page ───────── */
-
 export default function AddTour() {
 	const { data: divisions = [], isLoading: divisionLoading } = useGetDivisionsQuery(undefined);
 	const { data: tourTypes = [], isLoading: tourTypeLoading } = useGetTourTypesQuery(undefined);
 
-	// API data → { value, label } for SearchableSelect
 	const divisionOptions = useMemo(
 		() => (divisions as IDivision[]).map((item) => ({ value: item._id, label: item.name })),
 		[divisions],
@@ -237,14 +229,13 @@ export default function AddTour() {
 	const onSubmit = async (data: FormValues) => {
 		const { images, ...rest } = data;
 
-		// remove empty strings / empty arrays so backend gets only filled fields
 		const tourData = Object.fromEntries(
 			Object.entries(rest).filter(([, v]) => v !== "" && v !== undefined && !(Array.isArray(v) && v.length === 0)),
 		);
 
 		const formData = new FormData();
 		formData.append("data", JSON.stringify(tourData));
-		images.forEach((file) => formData.append("files", file)); // multerUpload.array("files")
+		images.forEach((file) => formData.append("files", file));
 
 		const toastId = toast.loading("Creating tour…");
 
@@ -264,7 +255,6 @@ export default function AddTour() {
 
 	return (
 		<div className="mx-auto flex w-full max-w-4xl flex-col gap-5">
-			{/* Page header */}
 			<div className="flex flex-col gap-3">
 				<Link
 					to="/admin/tours"
@@ -281,7 +271,6 @@ export default function AddTour() {
 
 			<form id="add-tour" className="flex flex-col gap-5" onSubmit={form.handleSubmit(onSubmit)}>
 				<fieldset disabled={isLoading} className="flex flex-col gap-5 disabled:opacity-60">
-					{/* ── 1. Basic info ── */}
 					<Section title="Basic info">
 						<Controller
 							name="title"
@@ -375,7 +364,6 @@ export default function AddTour() {
 						/>
 					</Section>
 
-					{/* ── 2. Images ── */}
 					<Section title="Images" description="First image is used as the cover.">
 						<Controller
 							name="images"
@@ -402,7 +390,6 @@ export default function AddTour() {
 						/>
 					</Section>
 
-					{/* ── 3. Location & dates ── */}
 					<Section title="Location & dates">
 						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 							<Controller
@@ -456,7 +443,6 @@ export default function AddTour() {
 											min={today}
 											onChange={(e) => {
 												field.onChange(e);
-												// clear end date if it is now before the new start date
 												const end = form.getValues("endDate");
 												if (end && end < e.target.value) form.setValue("endDate", "");
 											}}
@@ -490,7 +476,6 @@ export default function AddTour() {
 						</div>
 					</Section>
 
-					{/* ── 4. Pricing & guests ── */}
 					<Section title="Pricing & guests">
 						<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 							{(
@@ -518,7 +503,6 @@ export default function AddTour() {
 												ref={field.ref}
 												onBlur={field.onBlur}
 												value={field.value ?? ""}
-												// input gives string → convert to number (empty → undefined)
 												onChange={(e) => field.onChange(e.target.value === "" ? undefined : e.target.valueAsNumber)}
 												aria-invalid={fieldState.invalid}
 												className={inputCls}
@@ -531,7 +515,6 @@ export default function AddTour() {
 						</div>
 					</Section>
 
-					{/* ── 5. What's included ── */}
 					<Section title="What's included" description="Type and press Enter (or +) to add.">
 						<div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
 							<Controller
@@ -576,7 +559,6 @@ export default function AddTour() {
 						</div>
 					</Section>
 
-					{/* ── 6. Tour plan ── */}
 					<Section title="Tour plan" description="Add each day or step in order.">
 						<Controller
 							name="tourPlan"
@@ -594,7 +576,6 @@ export default function AddTour() {
 						/>
 					</Section>
 
-					{/* ── Sticky action bar ── */}
 					<div className="sticky bottom-0 z-10 -mx-4 flex justify-end gap-2.5 border-t border-border bg-background/95 px-4 py-3.5 backdrop-blur">
 						<Button asChild variant="outline" className="h-11 rounded-lg px-4 font-semibold" aria-disabled={isLoading}>
 							<Link to="/admin/tours" className={isLoading ? "pointer-events-none opacity-50" : ""}>

@@ -1,8 +1,3 @@
-// import AddTour from "@/pages/Admin/AddTour";
-// import AddTourTypes from "@/pages/Admin/AddTourTypes";
-// import Analytics from "@/pages/Admin/Analytics";
-// import Overview from "@/pages/Admin/Overview";
-
 import type { ISidebarItem } from "@/types";
 import { lazy } from "react";
 

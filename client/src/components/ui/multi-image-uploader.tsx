@@ -25,10 +25,8 @@ export default function MultiImageUploader({
 	const inputRef = useRef<HTMLInputElement>(null);
 	const [isDragging, setIsDragging] = useState(false);
 
-	// File → preview URL
 	const previews = useMemo(() => value.map((file) => URL.createObjectURL(file)), [value]);
 
-	// free memory
 	useEffect(() => {
 		return () => previews.forEach((url) => URL.revokeObjectURL(url));
 	}, [previews]);
@@ -37,7 +35,7 @@ export default function MultiImageUploader({
 		if (!fileList?.length) return;
 		const next = [...value, ...Array.from(fileList)].slice(0, maxFiles);
 		onChange(next);
-		if (inputRef.current) inputRef.current.value = ""; // allow re-selecting same file
+		if (inputRef.current) inputRef.current.value = "";
 	};
 
 	const removeFile = (index: number) => {

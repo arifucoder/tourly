@@ -1,15 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-// Frontedn -> Form Data with Image File -> Multer -> Form data -> Req (Body + File)
-
 import { v2 as cloudinary, type UploadApiResponse } from "cloudinary";
 import Stream from "stream";
 import AppError from "../errorHelpers/AppError";
 import { envVars } from "./env";
-
-// Amader folder -> image -> form data -> File -> Multer -> Amader project / pc te Nijer ekta folder(temporary) -> Req.file
-
-//req.file -> cloudinary(req.file) -> url -> mongoose -> mongodb
 
 cloudinary.config({
 	cloud_name: envVars.CLOUDINARY.CLOUDINARY_CLOUD_NAME,
@@ -52,7 +46,6 @@ export const uploadBufferToCloudinary = async (
 
 export const deleteImageFromCLoudinary = async (url: string) => {
 	try {
-		// https://res.cloudinary.com/<cloud>/image/upload/v1753126572/<public_id>.jpg
 		const regex = /\/upload\/(?:v\d+\/)?(.+?)\.[a-z0-9]+$/i;
 		const match = url.match(regex);
 
@@ -63,17 +56,10 @@ export const deleteImageFromCLoudinary = async (url: string) => {
 
 		const public_id = match[1];
 		const result = await cloudinary.uploader.destroy(public_id);
-		console.log(`Cloudinary destroy ${public_id}:`, result); // { result: "ok" } or { result: "not found" }
+		console.log(`Cloudinary destroy ${public_id}:`, result);
 	} catch (error: any) {
 		throw new AppError(401, "Cloudinary image deletion failed", error.message);
 	}
 };
 
 export const cloudinaryUpload = cloudinary;
-
-// const uploadToCloudinary = cloudinary.uploader.upload()
-
-//
-
-//Multer storage cloudinary
-//Amader folder -> image -> form data -> File -> Multer -> storage in cloudinary -> url ->  req.file  -> url  -> mongoose -> mongodb

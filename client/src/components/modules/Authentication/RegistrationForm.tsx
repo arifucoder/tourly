@@ -34,9 +34,7 @@ const formSchema = z
 			.regex(/[A-Z]/, { error: "Password must contain at least 1 uppercase letter." })
 			.regex(/[!@#$%^&*]/, { error: "Password must contain at least 1 special character." })
 			.regex(/\d/, { error: "Password must contain at least 1 number." }),
-		// Confirm password-এ আলাদা নিয়ম লাগে না, শুধু password-এর সাথে মিলতে হবে
 		confirmPassword: z.string().min(1, { error: "Please confirm your password." }),
-		// Optional field খালি থাকলে "" আসে, তাই "" কেও valid ধরা হচ্ছে
 		phone: z
 			.string()
 			.trim()
@@ -97,7 +95,6 @@ export default function RegistrationForm() {
 
 	return (
 		<div className="flex flex-col px-4 py-8 sm:px-6">
-			{/* Mobile-only logo (image panel hidden on small screens) */}
 			<div className="lg:hidden">
 				<Logo />
 			</div>
@@ -163,7 +160,6 @@ export default function RegistrationForm() {
 							render={({ field, fieldState }) => (
 								<Field data-invalid={fieldState.invalid}>
 									<FieldLabel htmlFor="password">Password</FieldLabel>
-									{/* absolute button-এর জন্য relative wrapper লাগবে */}
 									<div className="relative">
 										<Input
 											{...field}

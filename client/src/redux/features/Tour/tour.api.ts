@@ -3,10 +3,10 @@ import type { IMeta, IResponse, ITour } from "@/types";
 type TToursParams = {
 	page?: number;
 	limit?: number;
-	searchTerm?: string; // searches title, description, location
-	sort?: string; // "-createdAt" (default) | "costFrom" | "-costFrom"
-	division?: string; // division _id
-	tourType?: string; // tourType _id
+	searchTerm?: string;
+	sort?: string;
+	division?: string;
+	tourType?: string;
 	fields?: string;
 };
 export const tourApi = baseApi.injectEndpoints({

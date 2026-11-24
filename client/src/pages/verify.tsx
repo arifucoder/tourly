@@ -12,7 +12,7 @@ import { useLocation, useNavigate } from "react-router";
 import { toast } from "sonner";
 import z from "zod";
 
-const RESEND_TIME = 120; // সেকেন্ড
+const RESEND_TIME = 120;
 
 const FormSchema = z.object({
 	pin: z.string().length(6, { error: "Your one-time password must be 6 characters." }),
@@ -34,7 +34,6 @@ export default function Verify() {
 	const [verifyOtp, { isLoading: isVerifying }] = useVerifyOtpMutation();
 	const [timer, setTimer] = useState(0);
 
-	// StrictMode-এ effect দুবার চলে, তাই OTP যেন দুবার না যায়
 	const hasSentRef = useRef(false);
 
 	const form = useForm<FormValues>({
@@ -69,12 +68,10 @@ export default function Verify() {
 		}
 	};
 
-	// email না থাকলে home-এ পাঠাও
 	useEffect(() => {
 		if (!email) navigate("/");
 	}, [email, navigate]);
 
-	// Page খুললেই একবার OTP পাঠাও
 	useEffect(() => {
 		if (!email || hasSentRef.current) return;
 		hasSentRef.current = true;
@@ -82,7 +79,6 @@ export default function Verify() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [email]);
 
-	// Countdown: 0 হলে নিজেই থেমে যায়
 	useEffect(() => {
 		if (timer <= 0) return;
 		const id = setTimeout(() => setTimer((t) => t - 1), 1000);

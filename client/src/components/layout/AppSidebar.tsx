@@ -16,8 +16,6 @@ import { getSidebarItems } from "@/utils/getSidebarItems";
 import * as React from "react";
 import { Link, useLocation } from "react-router";
 
-// sidebar-01-এর মতো: section অনুযায়ী ভাগ করা navigation
-
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const { pathname } = useLocation();
 	const { data: userData } = useUserInfoQuery(undefined);

@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 type ImageUploaderProps = {
 	id?: string;
-	/** File (new upload) or string (existing image URL, for edit) */
 	value?: File | string | null;
 	onChange: (file: File | undefined) => void;
 	onBlur?: () => void;
@@ -27,13 +26,11 @@ export default function ImageUploader({
 	const inputRef = useRef<HTMLInputElement>(null);
 	const [isDragging, setIsDragging] = useState(false);
 
-	// Build preview URL (File → object URL, string → as is)
 	const previewUrl = useMemo(() => {
 		if (!value) return null;
 		return value instanceof File ? URL.createObjectURL(value) : value;
 	}, [value]);
 
-	// Free memory when file changes / component unmounts
 	useEffect(() => {
 		return () => {
 			if (value instanceof File && previewUrl) URL.revokeObjectURL(previewUrl);
@@ -49,7 +46,7 @@ export default function ImageUploader({
 
 	const handleRemove = () => {
 		onChange(undefined);
-		if (inputRef.current) inputRef.current.value = ""; // allow re-selecting same file
+		if (inputRef.current) inputRef.current.value = "";
 	};
 
 	const fileName = value instanceof File ? value.name : null;
@@ -67,7 +64,6 @@ export default function ImageUploader({
 			/>
 
 			{previewUrl ? (
-				/* ── Preview ── */
 				<div className="relative h-44 overflow-hidden rounded-xl border border-border bg-muted">
 					<img src={previewUrl} alt={fileName ?? "Selected image"} className="size-full object-cover" />
 
@@ -96,7 +92,6 @@ export default function ImageUploader({
 					</div>
 				</div>
 			) : (
-				/* ── Empty / drop zone ── */
 				<label
 					htmlFor={id}
 					onDragOver={(e) => {

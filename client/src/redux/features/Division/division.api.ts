@@ -4,10 +4,9 @@ export const divisionApi = baseApi.injectEndpoints({
 	endpoints: (builder) => ({
 		addDivision: builder.mutation({
 			query: (divisionData: FormData) => ({
-				url: "/division/create", // 👈 check your backend route
+				url: "/division/create",
 				method: "POST",
 				data: divisionData,
-				// ❌ don't set Content-Type manually — axios adds multipart boundary itself
 			}),
 			invalidatesTags: ["DIVISION"],
 		}),

@@ -12,15 +12,12 @@ import { Booking } from "./booking.model";
 import type { TCreateBookingPayload } from "./booking.validation";
 
 const createBooking = async (payload: TCreateBookingPayload, userId: string) => {
-	// ── Transaction-এর আগে: শুধু পড়া আর check ──
 	const user = await User.findById(userId);
 
-	// Booking-এর পর user-এর সাথে যোগাযোগ করতে হবে, তাই phone আর address বাধ্যতামূলক
 	if (!user?.phone || !user.address) {
 		throw new AppError(httpStatus.BAD_REQUEST, "Please update your profile (phone and address) to book a tour.");
 	}
 
-	// শুধু costFrom দরকার, তাই select করে শুধু ওটাই আনি
 	const tour = await Tour.findById(payload.tour).select("costFrom");
 
 	if (!tour) {
@@ -33,12 +30,10 @@ const createBooking = async (payload: TCreateBookingPayload, userId: string) => 
 	const amount = tour.costFrom * payload.guestCount;
 	const transactionId = getTransactionId();
 
-	// ── Transaction: ৩টা write একসাথে ──
 	const session = await Booking.startSession();
 	session.startTransaction();
 
 	try {
-		// ① Booking তৈরি
 		const booking = await new Booking({
 			user: userId,
 			tour: payload.tour,
@@ -46,7 +41,6 @@ const createBooking = async (payload: TCreateBookingPayload, userId: string) => 
 			status: BOOKING_STATUS.PENDING,
 		}).save({ session });
 
-		// ② Payment (bill) তৈরি
 		const payment = await new Payment({
 			booking: booking._id,
 			transactionId,
@@ -54,7 +48,6 @@ const createBooking = async (payload: TCreateBookingPayload, userId: string) => 
 			status: PAYMENT_STATUS.UNPAID,
 		}).save({ session });
 
-		// ③ Booking-এ payment id বসানো + response-এর জন্য populate
 		const updatedBooking = await Booking.findByIdAndUpdate(
 			booking._id,
 			{ payment: payment._id },
@@ -63,7 +56,6 @@ const createBooking = async (payload: TCreateBookingPayload, userId: string) => 
 			.populate("tour", "title costFrom")
 			.populate("payment");
 
-		// ④ SSLCommerz-এ payment শুরু
 		const paymentUrl = await SSLService.sslPaymentInit({
 			name: user.name,
 			email: user.email,
@@ -73,10 +65,10 @@ const createBooking = async (payload: TCreateBookingPayload, userId: string) => 
 			transactionId,
 		});
 
-		await session.commitTransaction(); // সব ঠিক → আসল DB-তে
+		await session.commitTransaction();
 		return { paymentUrl, booking: updatedBooking };
 	} catch (error) {
-		await session.abortTransaction(); // কোথাও error → সব বাতিল
+		await session.abortTransaction();
 		throw error;
 	} finally {
 		await session.endSession();

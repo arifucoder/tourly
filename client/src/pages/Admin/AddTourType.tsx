@@ -24,16 +24,13 @@ export default function AddTourTypes() {
 
 	return (
 		<div className="flex w-full max-w-6xl flex-col gap-5">
-			{/* Page heading */}
 			<div>
 				<h1 className="text-3xl font-bold tracking-tight">Tour types</h1>
 				<p className="text-muted-foreground">Used to filter tours and shown as a badge on each card.</p>
 			</div>
 
 			<div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[360px_1fr]">
-				{/* ───── Left: Add form ───── */}
 				<AddTourTypeForm />
-				{/* ───── Right: Tour types list ───── */}
 				<section className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
 					<div className="flex items-center justify-between gap-3 px-4.5 py-4">
 						<div>
@@ -43,7 +40,6 @@ export default function AddTourTypes() {
 					</div>
 
 					<ul className="list-none">
-						{/* Normal row (in use → delete disabled) */}
 						{data?.map((item: { name: string; _id: string }) => (
 							<li key={item._id} className="flex items-center gap-3.5 border-t border-border px-4.5 py-3.5">
 								<span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
