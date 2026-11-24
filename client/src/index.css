@@ -1,0 +1,270 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource/poppins/400.css";
+@import "@fontsource/poppins/500.css";
+@import "@fontsource/poppins/600.css";
+@import "@fontsource/poppins/700.css";
+@import "@fontsource/poppins/800.css";
+@import "@fontsource/hind-siliguri/500.css";
+@import "@fontsource/hind-siliguri/600.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: 'Poppins', 'Hind Siliguri', system-ui, sans-serif;
+
+  /* shadcn tokens */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Extra tokens from the Phovia design (shadcn has no equivalent) */
+  --color-primary-hover: var(--primary-hover);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  --color-soft: var(--soft);
+  --color-grid: var(--grid);
+  --color-pink: var(--pink);
+  --color-pink-soft: var(--pink-soft);
+  --color-yellow-soft: var(--yellow-soft);
+  --color-mint-soft: var(--mint-soft);
+  --color-star: var(--star);
+  --color-placeholder: var(--placeholder);
+  --color-placeholder-foreground: var(--placeholder-foreground);
+
+  --color-status-complete: var(--status-complete);
+  --color-status-pending: var(--status-pending);
+  --color-status-cancelled: var(--status-cancelled);
+  --color-status-failed: var(--status-failed);
+
+  --shadow-card: var(--shadow-card);
+
+  /* Radius: 10px buttons/inputs, 14px cards */
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --radius: 0.625rem;
+
+  /* Surfaces & text */
+  --background: #FFFFFF;
+  --foreground: #1C1A3A;
+  --card: #FFFFFF;
+  --card-foreground: #1C1A3A;
+  --popover: #FFFFFF;
+  --popover-foreground: #1C1A3A;
+  --secondary: #F7F6FD;
+  --secondary-foreground: #1C1A3A;
+  --muted: #F7F6FD;
+  --muted-foreground: #6A6785;
+  --soft: #FFF3F5;
+  --grid: #EEECF6;
+
+  /* Brand */
+  --primary: #5B4CF0;
+  --primary-foreground: #FFFFFF;
+  --primary-hover: #4A3BD9;
+  --accent: #EEEBFF;
+  --accent-foreground: #5B4CF0;
+
+  /* Lines & focus */
+  --border: #ECEAF5;
+  --input: #ECEAF5;
+  --ring: #5B4CF0;
+
+  /* Status */
+  --destructive: #B42318;
+  --destructive-foreground: #FFFFFF;
+  --destructive-soft: #FDECEA;
+  --success: #17714A;
+  --success-soft: #E2F3EA;
+  --warning: #8F5400;
+  --warning-soft: #FFF0D4;
+  --info: #21539E;
+  --info-soft: #E5EDFA;
+
+  /* Icon tiles, rating, image placeholder */
+  --pink: #B4335A;
+  --pink-soft: #FFE8EC;
+  --yellow-soft: #FFF4DC;
+  --mint-soft: #E3F7EF;
+  --star: #FFB547;
+  --placeholder: #EEEBF8;
+  --placeholder-foreground: #8A86AE;
+
+  /* Booking status badges */
+  --status-complete: #2E8B57;
+  --status-pending: #D9A21B;
+  --status-cancelled: #9AA3A0;
+  --status-failed: #C8402F;
+
+  /* Charts */
+  --chart-1: #6152F0;
+  --chart-2: #D9771F;
+  --chart-3: #2E8B57;
+  --chart-4: #D9A21B;
+  --chart-5: #C8402F;
+
+  /* Admin sidebar */
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #1C1A3A;
+  --sidebar-primary: #5B4CF0;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #EEEBFF;
+  --sidebar-accent-foreground: #5B4CF0;
+  --sidebar-border: #ECEAF5;
+  --sidebar-ring: #5B4CF0;
+
+  --shadow-card: 0 12px 34px rgba(28, 26, 58, 0.08);
+
+  --sidebar: #1C1A3A;
+  --sidebar-foreground: #C9C6E4;
+  --sidebar-primary: #8F84FF;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: rgb(255 255 255 / 0.1);
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #2E2B4A;
+  --sidebar-ring: #9D92FF;
+}
+
+.dark {
+  /* Surfaces & text */
+  --background: #12111F;
+  --foreground: #EEEDF7;
+  --card: #1B1A2E;
+  --card-foreground: #EEEDF7;
+  --popover: #1B1A2E;
+  --popover-foreground: #EEEDF7;
+  --secondary: #1F1D35;
+  --secondary-foreground: #EEEDF7;
+  --muted: #1F1D35;
+  --muted-foreground: #A9A6C4;
+  --soft: #211B2E;
+  --grid: #2A2845;
+
+  /* Brand */
+  --primary: #9D92FF;
+  --primary-foreground: #14112E;
+  --primary-hover: #B3AAFF;
+  --accent: #2A2550;
+  --accent-foreground: #9D92FF;
+
+  /* Lines & focus */
+  --border: #2E2B4A;
+  --input: #2E2B4A;
+  --ring: #9D92FF;
+
+  /* Status */
+  --destructive: #F28B80;
+  --destructive-foreground: #2A0E0B;
+  --destructive-soft: #3B1916;
+  /* not in design, proposed */
+  --success: #6DCB98;
+  --success-soft: #14301F;
+  --warning: #F1C46E;
+  --warning-soft: #382B10;
+  --info: #9DBBF0;
+  --info-soft: #172338;
+  /* not in design, proposed */
+
+  /* Icon tiles, rating, image placeholder */
+  --pink: #FF9DB2;
+  --pink-soft: #3A2230;
+  --yellow-soft: #3A3020;
+  --mint-soft: #1D3530;
+  --star: #FFB547;
+  --placeholder: #26243F;
+  --placeholder-foreground: #7E7AA6;
+
+  /* Booking status badges */
+  --status-complete: #4FB67C;
+  --status-pending: #E2B23A;
+  --status-cancelled: #6E7A77;
+  --status-failed: #E0604E;
+
+  /* Charts */
+  --chart-1: #7F73F5;
+  --chart-2: #D8762A;
+  --chart-3: #4FB67C;
+  --chart-4: #E2B23A;
+  --chart-5: #E0604E;
+
+  /* Admin sidebar */
+  --sidebar: #1B1A2E;
+  --sidebar-foreground: #EEEDF7;
+  --sidebar-primary: #9D92FF;
+  --sidebar-primary-foreground: #14112E;
+  --sidebar-accent: #2A2550;
+  --sidebar-accent-foreground: #9D92FF;
+  --sidebar-border: #2E2B4A;
+  --sidebar-ring: #9D92FF;
+
+  --shadow-card: 0 12px 34px rgba(0, 0, 0, 0.35);
+
+
+  --sidebar: #1C1A3A;
+  --sidebar-foreground: #C9C6E4;
+  --sidebar-primary: #8F84FF;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: rgb(255 255 255 / 0.1);
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #2E2B4A;
+  --sidebar-ring: #9D92FF;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  html {
+    @apply font-sans antialiased;
+  }
+}
