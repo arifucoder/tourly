@@ -1,28 +1,41 @@
 import type { ISidebarItem } from "@/types";
+import { BadgeCheck, ChartColumn, LayoutDashboard, Map, Mountain, Tag, Ticket, Users } from "lucide-react";
 import { lazy } from "react";
 
-const Analytics = lazy(() => import("@/pages/Admin/Analytics"));
 const Overview = lazy(() => import("@/pages/Admin/Overview"));
-const AddTourType = lazy(() => import("@/pages/Admin/AddTourType"));
-const AddTour = lazy(() => import("@/pages/Admin/AddTour"));
-const AddDivision = lazy(() => import("@/pages/Admin/AddDivision"));
+const Analytics = lazy(() => import("@/pages/Admin/Analytics"));
 const Tours = lazy(() => import("@/pages/Admin/Tours"));
+const TourForm = lazy(() => import("@/pages/Admin/AddTour"));
+const TourTypes = lazy(() => import("@/pages/Admin/AddTourType"));
+const Divisions = lazy(() => import("@/pages/Admin/AddDivision"));
+const Bookings = lazy(() => import("@/pages/Admin/Bookings"));
+const UsersPage = lazy(() => import("@/pages/Admin/Users"));
+const GuideApplications = lazy(() => import("@/pages/Admin/GuideApplications"));
 
 export const adminSidebarItems: ISidebarItem[] = [
 	{
-		title: "Dashboard",
+		title: "Overview",
 		items: [
-			{ title: "Overview", url: "/admin", component: Overview },
-			{ title: "Analytics", url: "/admin/analytics", component: Analytics },
+			{ title: "Dashboard", url: "/admin", component: Overview, icon: LayoutDashboard },
+			{ title: "Analytics", url: "/admin/analytics", component: Analytics, icon: ChartColumn },
 		],
 	},
 	{
-		title: "Tour Management",
+		title: "Catalogue",
 		items: [
-			{ title: "Tours", url: "/admin/tours", component: Tours },
-			{ title: "Add Tour", url: "/admin/add-tour", component: AddTour },
-			{ title: "Tour type", url: "/admin/tour-types", component: AddTourType },
-			{ title: "Add Division", url: "/admin/add-division", component: AddDivision },
+			{ title: "Tours", url: "/admin/tours", component: Tours, icon: Mountain },
+			{ title: "New tour", url: "/admin/tours/new", component: TourForm, hidden: true },
+			{ title: "Edit tour", url: "/admin/tours/:slug/edit", component: TourForm, hidden: true },
+			{ title: "Tour types", url: "/admin/tour-types", component: TourTypes, icon: Tag },
+			{ title: "Divisions", url: "/admin/divisions", component: Divisions, icon: Map },
+		],
+	},
+	{
+		title: "Operations",
+		items: [
+			{ title: "Bookings", url: "/admin/bookings", component: Bookings, icon: Ticket },
+			{ title: "Users", url: "/admin/users", component: UsersPage, icon: Users },
+			{ title: "Guide applications", url: "/admin/guide-applications", component: GuideApplications, icon: BadgeCheck },
 		],
 	},
 ];

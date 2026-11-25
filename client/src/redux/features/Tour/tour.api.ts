@@ -1,5 +1,5 @@
 import { baseApi } from "@/redux/baseApi";
-import type { IMeta, IResponse, ITour, ITourFilterOptions } from "@/types";
+import type { IMeta, IResponse, ITour, ITourFilterOptions, ITourType } from "@/types";
 type TToursParams = {
 	page?: number;
 	limit?: number;
@@ -50,6 +50,15 @@ export const tourApi = baseApi.injectEndpoints({
 			}),
 			invalidatesTags: ["TOUR"],
 		}),
+		updateTour: builder.mutation<ITour, { id: string; formData: FormData }>({
+			query: ({ id, formData }) => ({
+				url: `/tour/${id}`,
+				method: "PATCH",
+				data: formData,
+			}),
+			invalidatesTags: ["TOUR", "STATS"],
+			transformResponse: (response: IResponse<ITour>) => response.data,
+		}),
 		removeTour: builder.mutation({
 			query: (tourId: string) => ({
 				url: `/tour/${tourId}`,
@@ -66,6 +75,15 @@ export const tourApi = baseApi.injectEndpoints({
 			}),
 			invalidatesTags: ["TOUR"],
 		}),
+		updateTourType: builder.mutation<ITourType, { id: string; name: string }>({
+			query: ({ id, name }) => ({
+				url: `/tour/tour-types/${id}`,
+				method: "PATCH",
+				data: { name },
+			}),
+			invalidatesTags: ["TOUR"],
+			transformResponse: (response: IResponse<ITourType>) => response.data,
+		}),
 		removeTourType: builder.mutation({
 			query: (tourTypeId) => ({
 				url: `/tour/tour-types/${tourTypeId}`,
@@ -73,13 +91,13 @@ export const tourApi = baseApi.injectEndpoints({
 			}),
 			invalidatesTags: ["TOUR"],
 		}),
-		getTourTypes: builder.query({
+		getTourTypes: builder.query<ITourType[], void>({
 			query: () => ({
 				url: "/tour/tour-types",
 				method: "GET",
 			}),
 			providesTags: ["TOUR"],
-			transformResponse: (response) => response.data,
+			transformResponse: (response: IResponse<ITourType[]>) => response.data,
 		}),
 	}),
 });
@@ -93,4 +111,6 @@ export const {
 	useGetTourTypesQuery,
 	useAddTourTypeMutation,
 	useRemoveTourTypeMutation,
+	useUpdateTourMutation,
+	useUpdateTourTypeMutation,
 } = tourApi;

@@ -64,6 +64,7 @@
   --color-info-soft: var(--info-soft);
 
   --color-soft: var(--soft);
+  --color-page: var(--page);
   --color-grid: var(--grid);
   --color-pink: var(--pink);
   --color-pink-soft: var(--pink-soft);
@@ -163,6 +164,7 @@
   --navy: #0A192D;
   --cta: #F2C94C;
   --surface-2: #F8F7F5;
+  --page: #F6F7F9;
 
   --sidebar: #1C1A3A;
   --sidebar-foreground: #C9C6E4;
@@ -242,6 +244,7 @@
   --cyan-text: #5FD4EC;
   --navy: #31C3E0;
   --surface-2: #22262A;
+  --page: #111315;
   --shadow-soft: 0 12px 34px rgba(0, 0, 0, 0.35);
 
 

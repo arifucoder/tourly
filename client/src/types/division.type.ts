@@ -4,6 +4,7 @@ export interface IDivision {
 	slug: string;
 	description?: string;
 	thumbnail?: string;
+	tourCount?: number;
 	createdAt?: string;
 	updatedAt?: string;
 }

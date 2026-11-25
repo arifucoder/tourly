@@ -1,85 +1,201 @@
 import { DeleteConfirmation } from "@/components/DeleteConfirmation";
-import AddTourTypeForm from "@/components/modules/Admin/TourType/AddTourTypeForm";
-import { Button } from "@/components/ui/button";
+import PageHeader from "@/components/dashboard/PageHeader";
+import { EmptyState, ErrorState } from "@/components/dashboard/States";
+import { btnPrimary, dashCard, iconBtn, td, th } from "@/components/dashboard/styles";
+import { PageNumbers, SearchField } from "@/components/dashboard/TableControls";
+import TourTypeDialog from "@/components/modules/Admin/TourType/TourTypeDialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatDate, formatNumber, slugify } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { useGetTourTypesQuery, useRemoveTourTypeMutation } from "@/redux/features/Tour/tour.api";
-import { Pencil, Tag, Trash2 } from "lucide-react";
+import type { ITourType, TApiError } from "@/types";
+import { Pencil, Plus, SearchX, Tag, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
-export default function AddTourTypes() {
-	const { data } = useGetTourTypesQuery(undefined);
+const LIMIT = 10;
+const COLS = 6;
+
+type TModal = { type: ITourType | null } | null;
+
+export default function TourTypes() {
+	const { data: types = [], isLoading, isError, refetch } = useGetTourTypesQuery();
 	const [removeTourType] = useRemoveTourTypeMutation();
+	const [modal, setModal] = useState<TModal>(null);
+	const [search, setSearch] = useState("");
+	const [page, setPage] = useState(1);
 
-	const handleRemoveTourType = async (tourId: string) => {
-		const toastId = toast.loading("Removing...");
+	const term = search.trim().toLowerCase();
+	const filtered = term ? types.filter((type) => type.name.toLowerCase().includes(term)) : types;
+	const totalPage = Math.max(1, Math.ceil(filtered.length / LIMIT));
+	const current = Math.min(page, totalPage);
+	const rows = filtered.slice((current - 1) * LIMIT, current * LIMIT);
+
+	const remove = async (type: ITourType) => {
+		const toastId = toast.loading("Deleting…");
 		try {
-			const res = await removeTourType(tourId).unwrap();
-
-			if (res.success) {
-				toast.success("Removed", { id: toastId });
-			}
+			await removeTourType(type._id).unwrap();
+			toast.success("Tour type deleted", { id: toastId, description: `“${type.name}” was removed.` });
 		} catch (err) {
-			console.error(err);
+			toast.error((err as TApiError).data?.message || "Couldn't delete", { id: toastId });
 		}
 	};
 
+	const openNew = (
+		<button type="button" className={btnPrimary} onClick={() => setModal({ type: null })}>
+			<Plus strokeWidth={2.4} />
+			New tour type
+		</button>
+	);
+
 	return (
-		<div className="flex w-full max-w-6xl flex-col gap-5">
-			<div>
-				<h1 className="text-3xl font-bold tracking-tight">Tour types</h1>
-				<p className="text-muted-foreground">Used to filter tours and shown as a badge on each card.</p>
-			</div>
+		<div className="flex flex-col gap-5">
+			<PageHeader
+				title="Tour types"
+				description={`${isLoading ? "Loading…" : `${formatNumber(types.length)} types`} · used to filter tours and shown as a badge on each card`}
+				actions={openNew}
+			/>
 
-			<div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[360px_1fr]">
-				<AddTourTypeForm />
-				<section className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
-					<div className="flex items-center justify-between gap-3 px-4.5 py-4">
-						<div>
-							<h2 className="text-base font-semibold">All tour types</h2>
-							<p className="text-[13.5px] text-muted-foreground">3 types</p>
-						</div>
-					</div>
+			<section className={cn(dashCard, "overflow-hidden")}>
+				<div className="flex flex-wrap gap-3 border-b border-border p-4">
+					<SearchField
+						id="tt-q"
+						label="Search tour types"
+						placeholder="Search tour types"
+						value={search}
+						className="max-w-md"
+						onChange={(event) => {
+							setSearch(event.target.value);
+							setPage(1);
+						}}
+					/>
+				</div>
 
-					<ul className="list-none">
-						{data?.map((item: { name: string; _id: string }) => (
-							<li key={item._id} className="flex items-center gap-3.5 border-t border-border px-4.5 py-3.5">
-								<span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-									<Tag className="size-4.5" />
-								</span>
-								<div className="min-w-0 flex-1">
-									<strong className="block truncate">{item?.name}</strong>
-									<div className="text-[13.5px] text-muted-foreground">46 tours · slug: short-tour</div>
-								</div>
-								<Button
-									variant="outline"
-									size="icon"
-									type="button"
-									aria-label="Rename Short tour"
-									className="size-10 rounded-lg"
-								>
-									<Pencil className="size-4.25" />
-								</Button>
+				<div className="relative overflow-x-auto">
+					<table className="w-full min-w-160 border-collapse text-sm">
+						<thead>
+							<tr className="border-b border-border">
+								<th scope="col" className={cn(th, "w-14")}>
+									#
+								</th>
+								<th scope="col" className={th}>
+									Name
+								</th>
+								<th scope="col" className={th}>
+									Slug
+								</th>
+								<th scope="col" className={cn(th, "text-right")}>
+									Tours
+								</th>
+								<th scope="col" className={th}>
+									Created
+								</th>
+								<th scope="col" className={cn(th, "text-right")}>
+									Actions
+								</th>
+							</tr>
+						</thead>
+						<tbody>
+							{isLoading &&
+								Array.from({ length: 5 }).map((_, i) => (
+									<tr key={i} className="border-b border-border" aria-hidden="true">
+										{Array.from({ length: COLS }).map((__, col) => (
+											<td key={col} className={td}>
+												<Skeleton className={cn("h-3.5", col === 1 ? "w-36" : "w-14")} />
+											</td>
+										))}
+									</tr>
+								))}
 
-								<DeleteConfirmation onConfirm={() => handleRemoveTourType(item._id)}>
-									<Button
-										variant="outline"
-										size="icon"
-										type="button"
-										title="In use by 46 tours — move them first"
-										aria-label="Delete Short tour — in use by 46 tours"
-										className="size-10 rounded-lg disabled:opacity-40"
-									>
-										<Trash2 className="size-4.25" />
-									</Button>
-								</DeleteConfirmation>
-							</li>
-						))}
-					</ul>
+							{isError && (
+								<tr>
+									<td colSpan={COLS}>
+										<ErrorState title="Couldn't load tour types" onRetry={refetch} />
+									</td>
+								</tr>
+							)}
 
-					<p className="border-t border-border bg-muted px-4.5 py-3 text-[13.5px] text-muted-foreground">
-						A type that's still used by tours can't be deleted. Reassign those tours first.
-					</p>
-				</section>
-			</div>
+							{!isLoading && !isError && rows.length === 0 && (
+								<tr>
+									<td colSpan={COLS}>
+										<EmptyState
+											icon={term ? SearchX : Tag}
+											title={term ? "No tour types match" : "No tour types yet"}
+											description={term ? "Try another name." : "Add one, e.g. Short tour or Long tour."}
+											action={!term && openNew}
+										/>
+									</td>
+								</tr>
+							)}
+
+							{rows.map((type, index) => {
+								const count = type.tourCount ?? 0;
+								return (
+									<tr key={type._id} className="border-b border-border last:border-0 hover:bg-surface-2/60">
+										<td className={cn(td, "text-muted-foreground tabular-nums")}>
+											{(current - 1) * LIMIT + index + 1}
+										</td>
+										<td className={cn(td, "font-semibold")}>{type.name}</td>
+										<td className={cn(td, "text-muted-foreground")}>{slugify(type.name)}</td>
+										<td className={cn(td, "text-right tabular-nums")}>{formatNumber(count)}</td>
+										<td className={cn(td, "whitespace-nowrap text-muted-foreground")}>{formatDate(type.createdAt)}</td>
+										<td className={td}>
+											<div className="flex justify-end gap-1.5">
+												<button
+													type="button"
+													className={iconBtn}
+													aria-label={`Edit ${type.name}`}
+													onClick={() => setModal({ type })}
+												>
+													<Pencil />
+												</button>
+												{count > 0 ? (
+													<button
+														type="button"
+														className={iconBtn}
+														disabled
+														aria-label={`Delete ${type.name} — in use by ${count} tours`}
+														title={`In use by ${count} tours — move them first`}
+													>
+														<Trash2 />
+													</button>
+												) : (
+													<DeleteConfirmation itemName={type.name} confirmText="Delete type" onConfirm={() => remove(type)}>
+														<button
+															type="button"
+															className={cn(iconBtn, "text-destructive")}
+															aria-label={`Delete ${type.name}`}
+														>
+															<Trash2 />
+														</button>
+													</DeleteConfirmation>
+												)}
+											</div>
+										</td>
+									</tr>
+								);
+							})}
+						</tbody>
+					</table>
+				</div>
+
+				{filtered.length > 0 && (
+					<PageNumbers
+						page={current}
+						totalPage={totalPage}
+						total={filtered.length}
+						limit={LIMIT}
+						noun="tour types"
+						onChange={setPage}
+					/>
+				)}
+			</section>
+
+			<p className="text-[13.5px] text-muted-foreground">
+				A type that's still used by tours can't be deleted. Reassign those tours first.
+			</p>
+
+			<TourTypeDialog open={Boolean(modal)} type={modal?.type ?? null} types={types} onClose={() => setModal(null)} />
 		</div>
 	);
 }

@@ -1,8 +1,25 @@
+import type { LucideIcon } from "lucide-react";
 import type { ComponentType } from "react";
 
 export type { ILogin, ISendOtp, IVerifyOtp } from "./auth.type";
 export type { IDivision } from "./division.type";
 export type { IMeta, ITour, ITourFilterOption, ITourFilterOptions, ITourType } from "./tour.type";
+export type {
+	IAdminBooking,
+	IAvailableGuide,
+	IBookingDetail,
+	IBookingStats,
+	IDashboardStats,
+	IGuideApplication,
+	IPaymentStats,
+	ITourStats,
+	IUser,
+	IUserStats,
+	TApplicationStatus,
+	TBookingStatus,
+	TPaymentStatus,
+	TUserStatus,
+} from "./admin.type";
 
 export interface IResponse<T> {
 	statusCode: number;
@@ -25,6 +42,8 @@ export interface ISidebarItem {
 		title: string;
 		url: string;
 		component: ComponentType;
+		icon?: LucideIcon;
+		hidden?: boolean;
 	}[];
 }
 

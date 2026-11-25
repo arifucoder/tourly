@@ -1,8 +1,19 @@
 import { baseApi } from "@/redux/baseApi";
-import type { IResponse } from "@/types";
+import type { IAdminBooking, IAvailableGuide, IBookingDetail, IMeta, IResponse, TBookingStatus } from "@/types";
 
 type TCreateBookingPayload = { tour: string; guestCount: number };
 type TCreateBookingResponse = { paymentUrl: string; booking: unknown };
+
+export type TAdminBookingsParams = {
+	page?: number;
+	limit?: number;
+	status?: TBookingStatus;
+	searchTerm?: string;
+	from?: string;
+	to?: string;
+};
+
+type TBookingCounts = Record<TBookingStatus | "ALL", number>;
 
 export const bookingApi = baseApi.injectEndpoints({
 	endpoints: (builder) => ({
@@ -15,7 +26,47 @@ export const bookingApi = baseApi.injectEndpoints({
 			transformResponse: (response: IResponse<TCreateBookingResponse>) => response.data,
 			invalidatesTags: ["BOOKING"],
 		}),
+		getAllBookings: builder.query<{ data: IAdminBooking[]; meta: IMeta }, TAdminBookingsParams>({
+			query: (params) => ({ url: "/booking", method: "GET", params }),
+			providesTags: ["BOOKING"],
+			transformResponse: (response: IResponse<IAdminBooking[]> & { meta: IMeta }) => ({
+				data: response.data,
+				meta: response.meta,
+			}),
+		}),
+		getBookingSummary: builder.query<TBookingCounts, { from?: string; to?: string }>({
+			query: (params) => ({ url: "/booking/summary", method: "GET", params }),
+			providesTags: ["BOOKING"],
+			transformResponse: (response: IResponse<{ counts: TBookingCounts }>) => response.data.counts,
+		}),
+		getBooking: builder.query<IBookingDetail, string>({
+			query: (id) => ({ url: `/booking/${id}`, method: "GET" }),
+			providesTags: ["BOOKING"],
+			transformResponse: (response: IResponse<IBookingDetail>) => response.data,
+		}),
+		updateBookingStatus: builder.mutation<unknown, { id: string; status: TBookingStatus }>({
+			query: ({ id, status }) => ({ url: `/booking/${id}/status`, method: "PATCH", data: { status } }),
+			invalidatesTags: ["BOOKING", "STATS"],
+		}),
+		getAvailableGuides: builder.query<{ currentGuide: string | null; guides: IAvailableGuide[] }, string>({
+			query: (id) => ({ url: `/booking/${id}/available-guides`, method: "GET" }),
+			providesTags: ["BOOKING"],
+			transformResponse: (response: IResponse<{ currentGuide: string | null; guides: IAvailableGuide[] }>) =>
+				response.data,
+		}),
+		assignGuide: builder.mutation<unknown, { id: string; guide: string | null }>({
+			query: ({ id, guide }) => ({ url: `/booking/${id}/assign-guide`, method: "PATCH", data: { guide } }),
+			invalidatesTags: ["BOOKING"],
+		}),
 	}),
 });
 
-export const { useCreateBookingMutation } = bookingApi;
+export const {
+	useCreateBookingMutation,
+	useGetAllBookingsQuery,
+	useGetBookingSummaryQuery,
+	useGetBookingQuery,
+	useUpdateBookingStatusMutation,
+	useGetAvailableGuidesQuery,
+	useAssignGuideMutation,
+} = bookingApi;

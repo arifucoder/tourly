@@ -1,6 +1,7 @@
 export interface ITourType {
 	_id: string;
 	name: string;
+	tourCount?: number;
 	createdAt?: string;
 	updatedAt?: string;
 }
@@ -33,6 +34,7 @@ export interface ITour {
 	division: { _id: string; name: string; slug?: string } | null;
 	tourType: { _id: string; name: string } | null;
 	seatsLeft?: number | null;
+	bookingsCount?: number;
 	createdAt?: string;
 	updatedAt?: string;
 }

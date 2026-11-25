@@ -10,6 +10,7 @@ type ImageUploaderProps = {
 	accept?: string;
 	hint?: string;
 	invalid?: boolean;
+	removable?: boolean;
 	className?: string;
 };
 
@@ -21,6 +22,7 @@ export default function ImageUploader({
 	accept = "image/png,image/jpeg,image/webp",
 	hint = "PNG, JPG or WEBP · max 2 MB",
 	invalid = false,
+	removable = true,
 	className = "",
 }: ImageUploaderProps) {
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -79,6 +81,7 @@ export default function ImageUploader({
 								<RefreshCw className="size-3.5" />
 								Replace
 							</Button>
+							{removable && (
 							<Button
 								type="button"
 								variant="outline"
@@ -88,6 +91,7 @@ export default function ImageUploader({
 								<Trash2 className="size-3.5" />
 								Remove
 							</Button>
+							)}
 						</div>
 					</div>
 				</div>
