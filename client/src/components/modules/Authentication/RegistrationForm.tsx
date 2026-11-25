@@ -14,8 +14,8 @@ import { Controller, useForm } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import * as z from "zod";
+import { isValidPhone, normalizePhone, PHONE_ERROR } from "@/lib/phone";
 
-const bdPhoneRegex = /^(?:\+88)?01[3-9]\d{8}$/;
 
 const formSchema = z
 	.object({
@@ -38,9 +38,7 @@ const formSchema = z
 		phone: z
 			.string()
 			.trim()
-			.refine((value) => value === "" || bdPhoneRegex.test(value), {
-				error: "Enter a valid Bangladeshi number: 01XXXXXXXXX or +8801XXXXXXXXX",
-			})
+			.refine((value) => value === "" || isValidPhone(value), { error: PHONE_ERROR })
 			.optional(),
 		address: z.string().trim().max(200, { error: "Address cannot exceed 200 characters." }).optional(),
 	})
@@ -75,7 +73,7 @@ export default function RegistrationForm() {
 			name: data.name,
 			email: data.email,
 			password: data.password,
-			...(data.phone ? { phone: data.phone } : {}),
+			...(data.phone ? { phone: normalizePhone(data.phone) } : {}),
 			...(data.address ? { address: data.address } : {}),
 		};
 
@@ -224,7 +222,7 @@ export default function RegistrationForm() {
 										{...field}
 										id="phone"
 										type="tel"
-										placeholder="01XXXXXXXXX"
+										placeholder="+1 415 555 0132"
 										autoComplete="tel"
 										aria-invalid={fieldState.invalid}
 									/>
