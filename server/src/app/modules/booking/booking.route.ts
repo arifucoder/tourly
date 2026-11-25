@@ -4,7 +4,7 @@ import { checkAuth } from "../../middlewares/checkAuth";
 import { validateRequest } from "../../middlewares/validateRequest";
 import { Role } from "../user/user.interface";
 import { BookingController } from "./booking.controller";
-import { createBookingZodSchema, updateBookingStatusZodSchema } from "./booking.validation";
+import { assignGuideZodSchema, createBookingZodSchema, updateBookingStatusZodSchema } from "./booking.validation";
 
 const router = express.Router();
 
@@ -19,7 +19,16 @@ router.get("/summary", checkAuth(...adminRoles), BookingController.getBookingSum
 router.get("/my-bookings", checkAuth(...allRoles), BookingController.getUserBookings);
 router.get("/my-bookings/summary", checkAuth(...allRoles), BookingController.getUserBookingSummary);
 
+router.get("/assigned", checkAuth(Role.GUIDE), BookingController.getAssignedBookings);
+
 router.get("/:bookingId", checkAuth(...allRoles), BookingController.getSingleBooking);
+router.get("/:bookingId/available-guides", checkAuth(...adminRoles), BookingController.getAvailableGuides);
+router.patch(
+	"/:bookingId/assign-guide",
+	checkAuth(...adminRoles),
+	validateRequest(assignGuideZodSchema),
+	BookingController.assignGuide,
+);
 
 router.patch("/:bookingId/cancel", checkAuth(...allRoles), BookingController.cancelMyBooking);
 router.patch(

@@ -4,7 +4,12 @@ import type { JwtPayload } from "jsonwebtoken";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import { BookingService } from "./booking.service";
-import { allBookingsQuerySchema, bookingSummaryQuerySchema, myBookingsQuerySchema } from "./booking.validation";
+import {
+	allBookingsQuerySchema,
+	assignedBookingsQuerySchema,
+	bookingSummaryQuerySchema,
+	myBookingsQuerySchema,
+} from "./booking.validation";
 
 const createBooking = catchAsync(async (req: Request, res: Response) => {
 	const result = await BookingService.createBooking(req.body, (req.user as JwtPayload).userId);
@@ -94,7 +99,42 @@ const updateBookingStatus = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+const getAvailableGuides = catchAsync(async (req: Request, res: Response) => {
+	const result = await BookingService.getAvailableGuides(req.params.bookingId as string);
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: "Available guides retrieved successfully",
+		data: result,
+	});
+});
+
+const assignGuide = catchAsync(async (req: Request, res: Response) => {
+	const result = await BookingService.assignGuide(req.params.bookingId as string, req.body.guide);
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: req.body.guide ? "Guide assigned successfully" : "Guide removed from booking",
+		data: result,
+	});
+});
+
+const getAssignedBookings = catchAsync(async (req: Request, res: Response) => {
+	const query = assignedBookingsQuerySchema.parse(req.query);
+	const result = await BookingService.getAssignedBookings((req.user as JwtPayload).userId, query);
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: "Assigned bookings retrieved successfully",
+		data: result.data,
+		meta: result.meta,
+	});
+});
+
 export const BookingController = {
+	getAvailableGuides,
+	assignGuide,
+	getAssignedBookings,
 	createBooking,
 	getUserBookings,
 	getUserBookingSummary,
