@@ -6,9 +6,10 @@ import jwt from "jsonwebtoken";
 import { envVars } from "../../config/env";
 import AppError from "../../errorHelpers/AppError";
 import { sendEmail } from "../../utils/sendEmail";
-import { createNewAccessTokenWithRefreshToken, getPasswordResetSecret } from "../../utils/userTokens";
+import { createNewAccessTokenWithRefreshToken, createUserTokens, getPasswordResetSecret } from "../../utils/userTokens";
 import { IsActive, type IAuthProvider } from "../user/user.interface";
 import { User } from "../user/user.model";
+import type { TLoginPayload } from "./auth.validation";
 
 const getNewAccessToken = async (refreshToken: string) => {
 	const newAccessToken = await createNewAccessTokenWithRefreshToken(refreshToken);
@@ -18,8 +19,43 @@ const getNewAccessToken = async (refreshToken: string) => {
 	};
 };
 
+const INVALID_LOGIN = "Invalid email or password";
+
+let dummyHash: Promise<string> | undefined;
+const getDummyHash = () => (dummyHash ??= bcryptjs.hash("tourly-timing-guard", envVars.BCRYPT_SALT_ROUND));
+
+const credentialLogin = async ({ email, password }: TLoginPayload) => {
+	const user = await User.findOne({ email }).select("+password");
+
+	if (!user || !user.password) {
+		await bcryptjs.compare(password, await getDummyHash());
+
+		if (user?.auths.some((auth) => auth.provider === "google")) {
+			throw new AppError(
+				httpStatus.UNAUTHORIZED,
+				"This account uses Google sign-in. Log in with Google, then set a password from your profile.",
+			);
+		}
+		throw new AppError(httpStatus.UNAUTHORIZED, INVALID_LOGIN);
+	}
+
+	const isPasswordMatched = await bcryptjs.compare(password, user.password);
+
+	if (!isPasswordMatched) {
+		throw new AppError(httpStatus.UNAUTHORIZED, INVALID_LOGIN);
+	}
+	if (!user.isVerified) {
+		throw new AppError(httpStatus.FORBIDDEN, "Please verify your email first");
+	}
+	if (user.isDeleted || user.isActive === IsActive.BLOCKED || user.isActive === IsActive.INACTIVE) {
+		throw new AppError(httpStatus.FORBIDDEN, "Your account is not active. Contact support.");
+	}
+
+	return { user, tokens: createUserTokens(user) };
+};
+
 const changePassword = async (oldPassword: string, newPassword: string, decodedToken: JwtPayload) => {
-	const user = await User.findById(decodedToken.userId);
+	const user = await User.findById(decodedToken.userId).select("+password");
 
 	if (!user) {
 		throw new AppError(httpStatus.NOT_FOUND, "User not found");
@@ -36,7 +72,7 @@ const changePassword = async (oldPassword: string, newPassword: string, decodedT
 	await user.save();
 };
 const setPassword = async (userId: string, plainPassword: string) => {
-	const user = await User.findById(userId);
+	const user = await User.findById(userId).select("+password");
 
 	if (!user) {
 		throw new AppError(404, "User not found");
@@ -65,7 +101,7 @@ const setPassword = async (userId: string, plainPassword: string) => {
 	await user.save();
 };
 const forgotPassword = async (email: string) => {
-	const isUserExist = await User.findOne({ email });
+	const isUserExist = await User.findOne({ email }).select("+password");
 
 	if (!isUserExist) {
 		throw new AppError(httpStatus.BAD_REQUEST, "User does not exist");
@@ -108,7 +144,7 @@ const resetPassword = async (payload: Record<string, any>, resetToken?: string) 
 		throw new AppError(httpStatus.UNAUTHORIZED, "Invalid or expired reset link");
 	}
 
-	const isUserExist = await User.findById(decoded.userId);
+	const isUserExist = await User.findById(decoded.userId).select("+password");
 	if (!isUserExist) {
 		throw new AppError(httpStatus.UNAUTHORIZED, "Invalid or expired reset link");
 	}
@@ -125,6 +161,7 @@ const resetPassword = async (payload: Record<string, any>, resetToken?: string) 
 };
 
 export const AuthServices = {
+	credentialLogin,
 	getNewAccessToken,
 	changePassword,
 	setPassword,

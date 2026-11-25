@@ -16,6 +16,7 @@ const envSchema = z
 	.object({
 		NODE_ENV: z.enum(["development", "production"]).default("development"),
 		PORT: port.default(5000),
+		TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
 		FRONTEND_URL: httpUrl,
 
 		DB_URL: z.url({ protocol: /^mongodb(\+srv)?$/ }),
@@ -25,7 +26,6 @@ const envSchema = z
 		JWT_REFRESH_SECRET: secret,
 		JWT_REFRESH_EXPIRES: duration,
 		BCRYPT_SALT_ROUND: z.coerce.number().int().min(8).max(14).default(10),
-		EXPRESS_SESSION_SECRET: secret,
 
 		SUPER_ADMIN_EMAIL: z.email().optional(),
 		SUPER_ADMIN_PASSWORD: z.string().min(8).optional(),

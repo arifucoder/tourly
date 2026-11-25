@@ -1,6 +1,11 @@
 import { model, Schema } from "mongoose";
 import { IsActive, Role, type IAuthProvider, type IUser } from "./user.interface";
 
+const removePassword = (ret: Record<string, unknown>) => {
+	delete ret.password;
+	return ret;
+};
+
 const authProviderSchema = new Schema<IAuthProvider>(
 	{
 		provider: { type: String, required: true },
@@ -16,7 +21,7 @@ const userSchema = new Schema<IUser>(
 	{
 		name: { type: String, required: true },
 		email: { type: String, required: true, unique: true },
-		password: { type: String },
+		password: { type: String, select: false },
 		role: {
 			type: String,
 			enum: Object.values(Role),
@@ -37,6 +42,8 @@ const userSchema = new Schema<IUser>(
 	{
 		timestamps: true,
 		versionKey: false,
+		toJSON: { transform: (_doc, ret) => removePassword(ret) },
+		toObject: { transform: (_doc, ret) => removePassword(ret) },
 	},
 );
 

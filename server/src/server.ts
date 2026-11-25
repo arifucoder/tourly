@@ -11,21 +11,19 @@ const PORT = envVars.PORT;
 
 const startServer = async () => {
 	try {
-		await mongoose.connect(envVars.DB_URL);
-		console.log("connected to DB");
+		await Promise.all([mongoose.connect(envVars.DB_URL), connectRedis()]);
+		console.log("connected to DB and Redis");
 
 		server = app.listen(PORT, () => {
 			console.log(`Server is listening to port ${PORT}`);
 		});
 	} catch (error) {
-		console.log(error);
+		console.error("Failed to start server", error);
+		process.exit(1);
 	}
 };
 
-(async () => {
-	await connectRedis();
-	await startServer();
-})();
+startServer();
 
 process.on("SIGTERM", () => {
 	console.log("SIGTERM signal recieved... Server shutting down..");

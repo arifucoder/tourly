@@ -19,7 +19,9 @@ export const checkAuth =
 
 				const verifiedToken = verifyToken(accessToken, envVars.JWT_ACCESS_SECRET) as JwtPayload;
 
-				const isUserExist = await User.findById(verifiedToken.userId);
+				const isUserExist = await User.findById(verifiedToken.userId)
+					.select("role isActive isDeleted isVerified")
+					.lean();
 
 				if (!isUserExist) {
 					throw new AppError(httpStatus.BAD_REQUEST, "User does not exist");
@@ -39,7 +41,6 @@ export const checkAuth =
 				req.user = { userId: isUserExist._id.toString(), role: isUserExist.role };
 				next();
 			} catch (error) {
-				console.log("jwt error", error);
 				next(error);
 			}
 		};

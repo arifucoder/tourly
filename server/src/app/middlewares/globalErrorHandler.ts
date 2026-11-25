@@ -16,7 +16,6 @@ export const globalErrorHandler = async (err: any, req: Request, res: Response, 
 		console.log(err);
 	}
 
-	console.log({ file: req.files });
 	if (req.file) {
 		await deleteImageFromCLoudinary(req.file.path);
 	}
@@ -54,9 +53,12 @@ export const globalErrorHandler = async (err: any, req: Request, res: Response, 
 	} else if (err instanceof AppError) {
 		statusCode = err.statusCode;
 		message = err.message;
+	} else if (typeof err?.status === "number" && err.status >= 400 && err.status < 500) {
+		statusCode = err.status;
+		message = err.expose ? err.message : "Bad request";
 	} else if (err instanceof Error) {
 		statusCode = 500;
-		message = err.message;
+		message = envVars.NODE_ENV === "development" ? err.message : "Something went wrong. Please try again.";
 	}
 
 	res.status(statusCode).json({

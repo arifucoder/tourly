@@ -3,7 +3,6 @@
 import type { NextFunction, Request, Response } from "express";
 import httpStatus from "http-status-codes";
 import type { JwtPayload } from "jsonwebtoken";
-import passport from "passport";
 import { envVars } from "../../config/env";
 import AppError from "../../errorHelpers/AppError";
 import { catchAsync } from "../../utils/catchAsync";
@@ -12,36 +11,21 @@ import { authCookieOptions, setAuthCookie } from "../../utils/setCookie";
 import { createUserTokens } from "../../utils/userTokens";
 import { AuthServices } from "./auth.service";
 
-const credentialLogin = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-	passport.authenticate("local", async (err: any, user: any, info: any) => {
-		if (err) {
-			if (typeof err === "string") {
-				return next(new AppError(httpStatus.UNAUTHORIZED, err));
-			}
-			return next(err);
-		}
+const credentialLogin = catchAsync(async (req: Request, res: Response) => {
+	const { user, tokens } = await AuthServices.credentialLogin(req.body);
 
-		if (!user) {
-			return next(new AppError(httpStatus.UNAUTHORIZED, info?.message ?? "Login failed"));
-		}
+	setAuthCookie(res, tokens);
 
-		const userTokens = createUserTokens(user);
-
-		const { ...rest } = user.toObject();
-
-		setAuthCookie(res, userTokens);
-
-		sendResponse(res, {
-			success: true,
-			statusCode: httpStatus.OK,
-			message: "User Logged In Successfully",
-			data: {
-				accessToken: userTokens.accessToken,
-				refreshToken: userTokens.refreshToken,
-				user: rest,
-			},
-		});
-	})(req, res, next);
+	sendResponse(res, {
+		success: true,
+		statusCode: httpStatus.OK,
+		message: "User Logged In Successfully",
+		data: {
+			accessToken: tokens.accessToken,
+			refreshToken: tokens.refreshToken,
+			user: user.toObject(),
+		},
+	});
 });
 
 const getNewAccessToken = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
@@ -88,11 +72,7 @@ const changePassword = catchAsync(async (req: Request, res: Response, next: Next
 });
 
 const googleCallbackController = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-	let redirectTo = req.query.state ? (req.query.state as string) : "";
-
-	if (redirectTo.startsWith("/")) {
-		redirectTo = redirectTo.slice(1);
-	}
+	const redirectTo = (res.locals.oauthRedirect as string | undefined) ?? "/";
 
 	const user = req.user;
 
@@ -104,7 +84,7 @@ const googleCallbackController = catchAsync(async (req: Request, res: Response, 
 
 	setAuthCookie(res, tokenInfo);
 
-	res.redirect(`${envVars.FRONTEND_URL}/${redirectTo}`);
+	res.redirect(`${envVars.FRONTEND_URL}${redirectTo}`);
 });
 
 const setPassword = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
