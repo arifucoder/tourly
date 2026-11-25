@@ -6,31 +6,37 @@ import { Role, type IAuthProvider, type IUser } from "../app/modules/user/user.i
 import { User } from "../app/modules/user/user.model";
 
 const seedSuperAdmin = async () => {
-	const isSuperAdminExist = await User.findOne({ email: envVars.SUPER_ADMIN_EMAIL });
+	const { SUPER_ADMIN_EMAIL: email, SUPER_ADMIN_PASSWORD: password } = envVars;
+
+	if (!email || !password) {
+		throw new Error("Set SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASSWORD in .env to seed the super admin");
+	}
+
+	const isSuperAdminExist = await User.findOne({ email });
 
 	if (isSuperAdminExist) {
-		console.log(`Super admin already exists: ${envVars.SUPER_ADMIN_EMAIL}`);
+		console.log(`Super admin already exists: ${email}`);
 		return;
 	}
 
-	const hashedPassword = await bcryptjs.hash(envVars.SUPER_ADMIN_PASSWORD, Number(envVars.BCRYPT_SALT_ROUND));
+	const hashedPassword = await bcryptjs.hash(password, envVars.BCRYPT_SALT_ROUND);
 
 	const authProvider: IAuthProvider = {
 		provider: "credentials",
-		providerId: envVars.SUPER_ADMIN_EMAIL,
+		providerId: email,
 	};
 
 	const payload: Omit<IUser, "_id"> = {
 		name: "Super admin",
 		role: Role.SUPER_ADMIN,
-		email: envVars.SUPER_ADMIN_EMAIL,
+		email,
 		password: hashedPassword,
 		isVerified: true,
 		auths: [authProvider],
 	};
 
 	await User.create(payload);
-	console.log(`Super admin created: ${envVars.SUPER_ADMIN_EMAIL}`);
+	console.log(`Super admin created: ${email}`);
 };
 
 const run = async () => {

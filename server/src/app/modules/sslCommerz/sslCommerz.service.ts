@@ -9,15 +9,15 @@ import { type ISSLCommerz } from "./sslCommerz.interface";
 const sslPaymentInit = async (payload: ISSLCommerz) => {
 	try {
 		const data = {
-			store_id: envVars.SSL.STORE_ID,
-			store_passwd: envVars.SSL.STORE_PASS,
+			store_id: envVars.SSL_STORE_ID,
+			store_passwd: envVars.SSL_STORE_PASS,
 			total_amount: payload.amount,
 			currency: "BDT",
 			tran_id: payload.transactionId,
-			success_url: `${envVars.SSL.SSL_SUCCESS_BACKEND_URL}?transactionId=${payload.transactionId}&amount=${payload.amount}&status=success`,
-			fail_url: `${envVars.SSL.SSL_FAIL_BACKEND_URL}?transactionId=${payload.transactionId}&amount=${payload.amount}&status=fail`,
-			cancel_url: `${envVars.SSL.SSL_CANCEL_BACKEND_URL}?transactionId=${payload.transactionId}&amount=${payload.amount}&status=cancel`,
-			ipn_url: envVars.SSL.SSL_IPN_URL,
+			success_url: `${envVars.SSL_SUCCESS_BACKEND_URL}?transactionId=${payload.transactionId}&amount=${payload.amount}&status=success`,
+			fail_url: `${envVars.SSL_FAIL_BACKEND_URL}?transactionId=${payload.transactionId}&amount=${payload.amount}&status=fail`,
+			cancel_url: `${envVars.SSL_CANCEL_BACKEND_URL}?transactionId=${payload.transactionId}&amount=${payload.amount}&status=cancel`,
+			ipn_url: envVars.SSL_IPN_URL,
 			shipping_method: "N/A",
 			product_name: "Tour",
 			product_category: "Service",
@@ -43,7 +43,7 @@ const sslPaymentInit = async (payload: ISSLCommerz) => {
 
 		const response = await axios({
 			method: "POST",
-			url: envVars.SSL.SSL_PAYMENT_API,
+			url: envVars.SSL_PAYMENT_API,
 			data: data,
 			headers: { "Content-Type": "application/x-www-form-urlencoded" },
 		});
@@ -64,7 +64,7 @@ const validatePayment = async (payload: any) => {
 	try {
 		const response = await axios({
 			method: "GET",
-			url: `${envVars.SSL.SSL_VALIDATION_API}?val_id=${payload.val_id}&store_id=${envVars.SSL.STORE_ID}&store_passwd=${envVars.SSL.STORE_PASS}`,
+			url: `${envVars.SSL_VALIDATION_API}?val_id=${payload.val_id}&store_id=${envVars.SSL_STORE_ID}&store_passwd=${envVars.SSL_STORE_PASS}`,
 		});
 
 		await Payment.updateOne(

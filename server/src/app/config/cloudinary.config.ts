@@ -6,9 +6,9 @@ import AppError from "../errorHelpers/AppError";
 import { envVars } from "./env";
 
 cloudinary.config({
-	cloud_name: envVars.CLOUDINARY.CLOUDINARY_CLOUD_NAME,
-	api_key: envVars.CLOUDINARY.CLOUDINARY_API_KEY,
-	api_secret: envVars.CLOUDINARY.CLOUDINARY_API_SECRET,
+	cloud_name: envVars.CLOUDINARY_CLOUD_NAME,
+	api_key: envVars.CLOUDINARY_API_KEY,
+	api_secret: envVars.CLOUDINARY_API_SECRET,
 });
 
 export const uploadBufferToCloudinary = async (

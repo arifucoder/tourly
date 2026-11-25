@@ -1,160 +1,95 @@
+/* eslint-disable no-console */
 import dotenv from "dotenv";
+import * as z from "zod";
 
 dotenv.config();
 
-interface EnvConfig {
-	PORT: string;
-	DB_URL: string;
-	NODE_ENV: "development" | "production";
-	JWT_ACCESS_SECRET: string;
-	JWT_ACCESS_EXPIRES: string;
-	JWT_REFRESH_SECRET: string;
-	JWT_REFRESH_EXPIRES: string;
-	SUPER_ADMIN_EMAIL: string;
-	SUPER_ADMIN_PASSWORD: string;
-	BCRYPT_SALT_ROUND: string;
-	GOOGLE_CLIENT_ID: string;
-	GOOGLE_CLIENT_SECRET: string;
-	GOOGLE_CALLBACK_URL: string;
-	EXPRESS_SESSION_SECRET: string;
-	FRONTEND_URL: string;
+const DURATION_REGEX = /^\d+(?:\.\d+)?\s?(?:ms|s|m|h|d|w|y)$/i;
 
-	SSL: {
-		STORE_ID: string;
-		STORE_PASS: string;
-		SSL_PAYMENT_API: string;
-		SSL_SUCCESS_FRONTEND_URL: string;
-		SSL_FAIL_FRONTEND_URL: string;
-		SSL_CANCEL_FRONTEND_URL: string;
-		SSL_SUCCESS_BACKEND_URL: string;
-		SSL_FAIL_BACKEND_URL: string;
-		SSL_CANCEL_BACKEND_URL: string;
-		SSL_VALIDATION_API: string;
-		SSL_IPN_URL: string;
-	};
+const secret = z.string().min(32, "Must be at least 32 characters (generate: openssl rand -base64 32)");
+const duration = z.string().regex(DURATION_REGEX, 'Must be a duration like "15m", "1d" or "30d"');
+const httpUrl = z.url({ protocol: /^https?$/ });
+const port = z.coerce.number().int().min(1).max(65535);
+const required = z.string().trim().min(1);
 
-	CLOUDINARY: {
-		CLOUDINARY_CLOUD_NAME: string;
-		CLOUDINARY_API_KEY: string;
-		CLOUDINARY_API_SECRET: string;
-	};
+const envSchema = z
+	.object({
+		NODE_ENV: z.enum(["development", "production"]).default("development"),
+		PORT: port.default(5000),
+		FRONTEND_URL: httpUrl,
 
-	EMAIL_SENDER: {
-		SMTP_USER: string;
-		SMTP_PASS: string;
-		SMTP_PORT: string;
-		SMTP_HOST: string;
-		SMTP_FROM: string;
-	};
+		DB_URL: z.url({ protocol: /^mongodb(\+srv)?$/ }),
 
-	REDIS_HOST: string;
-	REDIS_PORT: string;
-	REDIS_USERNAME: string;
-	REDIS_PASSWORD: string;
-}
+		JWT_ACCESS_SECRET: secret,
+		JWT_ACCESS_EXPIRES: duration,
+		JWT_REFRESH_SECRET: secret,
+		JWT_REFRESH_EXPIRES: duration,
+		BCRYPT_SALT_ROUND: z.coerce.number().int().min(8).max(14).default(10),
+		EXPRESS_SESSION_SECRET: secret,
 
-const loadEnvVariables = (): EnvConfig => {
-	const requiredEnvVariables: string[] = [
-		"PORT",
-		"DB_URL",
-		"NODE_ENV",
-		"JWT_ACCESS_SECRET",
-		"JWT_ACCESS_EXPIRES",
-		"JWT_REFRESH_SECRET",
-		"JWT_REFRESH_EXPIRES",
-		"SUPER_ADMIN_EMAIL",
-		"SUPER_ADMIN_PASSWORD",
-		"BCRYPT_SALT_ROUND",
-		"GOOGLE_CLIENT_ID",
-		"GOOGLE_CLIENT_SECRET",
-		"GOOGLE_CALLBACK_URL",
-		"EXPRESS_SESSION_SECRET",
-		"FRONTEND_URL",
+		SUPER_ADMIN_EMAIL: z.email().optional(),
+		SUPER_ADMIN_PASSWORD: z.string().min(8).optional(),
 
-		"SSL_STORE_ID",
-		"SSL_STORE_PASS",
-		"SSL_PAYMENT_API",
-		"SSL_VALIDATION_API",
-		"SSL_IPN_URL",
-		"SSL_SUCCESS_FRONTEND_URL",
-		"SSL_FAIL_FRONTEND_URL",
-		"SSL_CANCEL_FRONTEND_URL",
-		"SSL_SUCCESS_BACKEND_URL",
-		"SSL_FAIL_BACKEND_URL",
-		"SSL_CANCEL_BACKEND_URL",
+		GOOGLE_CLIENT_ID: z.string().trim().endsWith(".apps.googleusercontent.com", 'Must end with ".apps.googleusercontent.com"'),
+		GOOGLE_CLIENT_SECRET: required,
+		GOOGLE_CALLBACK_URL: httpUrl,
 
-		"CLOUDINARY_CLOUD_NAME",
-		"CLOUDINARY_API_KEY",
-		"CLOUDINARY_API_SECRET",
+		SSL_STORE_ID: required,
+		SSL_STORE_PASS: required,
+		SSL_PAYMENT_API: z.url({ protocol: /^https$/ }),
+		SSL_VALIDATION_API: z.url({ protocol: /^https$/ }),
+		SSL_IPN_URL: httpUrl,
+		SSL_SUCCESS_BACKEND_URL: httpUrl,
+		SSL_FAIL_BACKEND_URL: httpUrl,
+		SSL_CANCEL_BACKEND_URL: httpUrl,
+		SSL_SUCCESS_FRONTEND_URL: httpUrl,
+		SSL_FAIL_FRONTEND_URL: httpUrl,
+		SSL_CANCEL_FRONTEND_URL: httpUrl,
 
-		"SMTP_USER",
-		"SMTP_PASS",
-		"SMTP_PORT",
-		"SMTP_HOST",
-		"SMTP_FROM",
+		CLOUDINARY_CLOUD_NAME: required,
+		CLOUDINARY_API_KEY: required,
+		CLOUDINARY_API_SECRET: required,
 
-		"REDIS_HOST",
-		"REDIS_PORT",
-		"REDIS_USERNAME",
-		"REDIS_PASSWORD",
-	];
+		SMTP_HOST: required,
+		SMTP_PORT: port,
+		SMTP_USER: required,
+		SMTP_PASS: required,
+		SMTP_FROM: z.email(),
 
-	requiredEnvVariables.forEach((key) => {
-		if (!process.env[key]) {
-			throw new Error(`Missing require environment variable ${key}`);
+		REDIS_HOST: required,
+		REDIS_PORT: port.default(6379),
+		REDIS_USERNAME: required.optional(),
+		REDIS_PASSWORD: required.optional(),
+	})
+	.superRefine((env, ctx) => {
+		if (env.JWT_ACCESS_SECRET === env.JWT_REFRESH_SECRET) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["JWT_REFRESH_SECRET"],
+				message: "Must be different from JWT_ACCESS_SECRET",
+			});
+		}
+		if (env.NODE_ENV === "production") {
+			const mustBeHttps = ["FRONTEND_URL", "GOOGLE_CALLBACK_URL", "SSL_IPN_URL"] as const;
+			for (const key of mustBeHttps) {
+				if (!env[key].startsWith("https://")) {
+					ctx.addIssue({ code: "custom", path: [key], message: "Must use https in production" });
+				}
+			}
+			if (!env.REDIS_PASSWORD) {
+				ctx.addIssue({ code: "custom", path: ["REDIS_PASSWORD"], message: "Required in production" });
+			}
 		}
 	});
 
-	return {
-		PORT: process.env.PORT as string,
-		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-		DB_URL: process.env.DB_URL!,
-		NODE_ENV: process.env.NODE_ENV as "development" | "production",
-		JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET as string,
-		JWT_ACCESS_EXPIRES: process.env.JWT_ACCESS_EXPIRES as string,
-		JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET as string,
-		JWT_REFRESH_EXPIRES: process.env.JWT_REFRESH_EXPIRES as string,
-		SUPER_ADMIN_EMAIL: process.env.SUPER_ADMIN_EMAIL as string,
-		SUPER_ADMIN_PASSWORD: process.env.SUPER_ADMIN_PASSWORD as string,
-		BCRYPT_SALT_ROUND: process.env.BCRYPT_SALT_ROUND as string,
-		GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID as string,
-		GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET as string,
-		GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL as string,
-		EXPRESS_SESSION_SECRET: process.env.EXPRESS_SESSION_SECRET as string,
-		FRONTEND_URL: process.env.FRONTEND_URL as string,
+const rawEnv = Object.fromEntries(Object.entries(process.env).filter(([, value]) => value !== ""));
 
-		SSL: {
-			STORE_ID: process.env.SSL_STORE_ID as string,
-			STORE_PASS: process.env.SSL_STORE_PASS as string,
-			SSL_PAYMENT_API: process.env.SSL_PAYMENT_API as string,
-			SSL_VALIDATION_API: process.env.SSL_VALIDATION_API as string,
-			SSL_IPN_URL: process.env.SSL_IPN_URL as string,
+const parsed = envSchema.safeParse(rawEnv);
 
-			SSL_SUCCESS_FRONTEND_URL: process.env.SSL_SUCCESS_FRONTEND_URL as string,
-			SSL_FAIL_FRONTEND_URL: process.env.SSL_FAIL_FRONTEND_URL as string,
-			SSL_CANCEL_FRONTEND_URL: process.env.SSL_CANCEL_FRONTEND_URL as string,
-			SSL_SUCCESS_BACKEND_URL: process.env.SSL_SUCCESS_BACKEND_URL as string,
-			SSL_FAIL_BACKEND_URL: process.env.SSL_FAIL_BACKEND_URL as string,
-			SSL_CANCEL_BACKEND_URL: process.env.SSL_CANCEL_BACKEND_URL as string,
-		},
+if (!parsed.success) {
+	console.error(`Invalid environment variables:\n${z.prettifyError(parsed.error)}`);
+	process.exit(1);
+}
 
-		CLOUDINARY: {
-			CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME as string,
-			CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY as string,
-			CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET as string,
-		},
-		EMAIL_SENDER: {
-			SMTP_USER: process.env.SMTP_USER as string,
-			SMTP_PASS: process.env.SMTP_PASS as string,
-			SMTP_PORT: process.env.SMTP_PORT as string,
-			SMTP_HOST: process.env.SMTP_HOST as string,
-			SMTP_FROM: process.env.SMTP_FROM as string,
-		},
-		REDIS_HOST: process.env.REDIS_HOST as string,
-		REDIS_PORT: process.env.REDIS_PORT as string,
-		REDIS_USERNAME: process.env.REDIS_USERNAME as string,
-		REDIS_PASSWORD: process.env.REDIS_PASSWORD as string,
-	};
-};
-
-export const envVars = loadEnvVariables();
+export const envVars = parsed.data;
+export const isProduction = envVars.NODE_ENV === "production";

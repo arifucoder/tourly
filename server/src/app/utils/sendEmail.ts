@@ -12,11 +12,11 @@ const __dirname = path.dirname(__filename);
 const transporter = nodemailer.createTransport({
 	secure: true,
 	auth: {
-		user: envVars.EMAIL_SENDER.SMTP_USER,
-		pass: envVars.EMAIL_SENDER.SMTP_PASS,
+		user: envVars.SMTP_USER,
+		pass: envVars.SMTP_PASS,
 	},
-	port: Number(envVars.EMAIL_SENDER.SMTP_PORT),
-	host: envVars.EMAIL_SENDER.SMTP_HOST,
+	port: envVars.SMTP_PORT,
+	host: envVars.SMTP_HOST,
 });
 
 interface SendEmailOptions {
@@ -37,7 +37,7 @@ export const sendEmail = async ({ to, subject, templateName, templateData, attac
 		const html = await ejs.renderFile(templatePath, templateData);
 
 		const info = await transporter.sendMail({
-			from: envVars.EMAIL_SENDER.SMTP_FROM,
+			from: envVars.SMTP_FROM,
 			to: to,
 			subject: subject,
 			html: html,

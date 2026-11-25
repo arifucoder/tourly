@@ -31,7 +31,7 @@ const changePassword = async (oldPassword: string, newPassword: string, decodedT
 		throw new AppError(httpStatus.UNAUTHORIZED, "Old password does not match");
 	}
 
-	user.password = await bcryptjs.hash(newPassword, Number(envVars.BCRYPT_SALT_ROUND));
+	user.password = await bcryptjs.hash(newPassword, envVars.BCRYPT_SALT_ROUND);
 
 	await user.save();
 };
@@ -49,7 +49,7 @@ const setPassword = async (userId: string, plainPassword: string) => {
 		);
 	}
 
-	const hashedPassword = await bcryptjs.hash(plainPassword, Number(envVars.BCRYPT_SALT_ROUND));
+	const hashedPassword = await bcryptjs.hash(plainPassword, envVars.BCRYPT_SALT_ROUND);
 
 	const credentialProvider: IAuthProvider = {
 		provider: "credentials",
@@ -113,7 +113,7 @@ const resetPassword = async (payload: Record<string, any>, decodedToken: JwtPayl
 		throw new AppError(401, "User does not exist");
 	}
 
-	const hashedPassword = await bcryptjs.hash(payload.newPassword, Number(envVars.BCRYPT_SALT_ROUND));
+	const hashedPassword = await bcryptjs.hash(payload.newPassword, envVars.BCRYPT_SALT_ROUND);
 
 	isUserExist.password = hashedPassword;
 

@@ -21,7 +21,7 @@ const successPayment = catchAsync(async (req: Request, res: Response) => {
 
 	if (result.success) {
 		res.redirect(
-			`${envVars.SSL.SSL_SUCCESS_FRONTEND_URL}?transactionId=${query.transactionId}&message=${result.message}&amount=${query.amount}&status=${query.status}`,
+			`${envVars.SSL_SUCCESS_FRONTEND_URL}?transactionId=${query.transactionId}&message=${result.message}&amount=${query.amount}&status=${query.status}`,
 		);
 	}
 });
@@ -31,7 +31,7 @@ const failPayment = catchAsync(async (req: Request, res: Response) => {
 
 	if (!result.success) {
 		res.redirect(
-			`${envVars.SSL.SSL_FAIL_FRONTEND_URL}?transactionId=${query.transactionId}&message=${result.message}&amount=${query.amount}&status=${query.status}`,
+			`${envVars.SSL_FAIL_FRONTEND_URL}?transactionId=${query.transactionId}&message=${result.message}&amount=${query.amount}&status=${query.status}`,
 		);
 	}
 });
@@ -41,7 +41,7 @@ const cancelPayment = catchAsync(async (req: Request, res: Response) => {
 
 	if (!result.success) {
 		res.redirect(
-			`${envVars.SSL.SSL_CANCEL_FRONTEND_URL}?transactionId=${query.transactionId}&message=${result.message}&amount=${query.amount}&status=${query.status}`,
+			`${envVars.SSL_CANCEL_FRONTEND_URL}?transactionId=${query.transactionId}&message=${result.message}&amount=${query.amount}&status=${query.status}`,
 		);
 	}
 });
