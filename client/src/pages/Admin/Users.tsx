@@ -27,6 +27,7 @@ import {
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { role } from "@/constants/role";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { formatDate, formatNumber, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -34,7 +35,7 @@ import { useUserInfoQuery } from "@/redux/features/auth/auth.api";
 import { useGetUsersQuery, useUpdateUserMutation } from "@/redux/features/User/user.api";
 import type { IUser, TApiError, TRole, TUserStatus } from "@/types";
 import { Ban, Lock, UserRoundSearch, Users as UsersIcon, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 const LIMIT = 10;
@@ -213,7 +214,6 @@ export default function Users() {
 	const [statusFilter, setStatusFilter] = useState("");
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [blockTarget, setBlockTarget] = useState<IUser | null>(null);
-	const panelRef = useRef<HTMLElement>(null);
 
 	const searchTerm = useDebouncedValue(search.trim());
 
@@ -234,12 +234,7 @@ export default function Users() {
 	const meta = data?.meta;
 	const selected = users.find((user) => user._id === selectedId) ?? null;
 
-	const selectUser = (id: string) => {
-		setSelectedId(id);
-		if (window.matchMedia("(max-width: 1279px)").matches) {
-			requestAnimationFrame(() => panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
-		}
-	};
+	const selectUser = (id: string) => setSelectedId(id);
 
 	const setStatus = async (user: IUser, isActive: TUserStatus) => {
 		const toastId = toast.loading(isActive === "BLOCKED" ? "Blocking…" : "Unblocking…");
@@ -266,8 +261,7 @@ export default function Users() {
 				description={`${meta ? `${formatNumber(meta.total)} accounts` : "Loading…"}${viewerRole ? ` · you're signed in as ${viewerRole === "Admin" ? "an" : "a"} ${viewerRole}` : ""}`}
 			/>
 
-			<div className="flex flex-wrap items-start gap-5.5">
-				<section className={cn(dashCard, "min-w-0 flex-[999_1_560px] overflow-hidden")}>
+			<section className={cn(dashCard, "overflow-hidden")}>
 					<div className="flex flex-wrap gap-3 border-b border-border p-4">
 						<SearchField
 							id="u-q"
@@ -312,7 +306,7 @@ export default function Users() {
 									<th scope="col" className={cn(th, cell)}>
 										Status
 									</th>
-									<th scope="col" className={cn(th, cell, "hidden 2xl:table-cell")}>
+									<th scope="col" className={cn(th, cell)}>
 										Joined
 									</th>
 									<th scope="col" className={cn(th, cell, "text-right")}>
@@ -375,7 +369,7 @@ export default function Users() {
 											<td className={cn(td, cell)}>
 												<AccountStatusBadge user={user} />
 											</td>
-											<td className={cn(td, cell, "hidden whitespace-nowrap tabular-nums 2xl:table-cell")}>
+											<td className={cn(td, cell, "whitespace-nowrap tabular-nums")}>
 												{formatDate(user.createdAt, { month: "short", year: "numeric" })}
 											</td>
 											<td className={cn(td, cell, "text-right tabular-nums")}>{formatNumber(user.bookingsCount)}</td>
@@ -423,12 +417,11 @@ export default function Users() {
 					)}
 				</section>
 
-				<aside
-					ref={panelRef}
-					aria-label="User details"
-					className={cn(dashCard, "flex w-full scroll-mt-4 flex-col gap-4 p-5.5 xl:max-w-85 xl:flex-[1_1_300px]")}
-				>
-					{selected ? (
+			<Sheet open={Boolean(selected)} onOpenChange={(open) => !open && setSelectedId(null)}>
+				<SheetContent showCloseButton={false} className="w-full gap-4 overflow-y-auto bg-card p-5.5 sm:max-w-md">
+					<SheetTitle className="sr-only">User details</SheetTitle>
+					<SheetDescription className="sr-only">User details and actions</SheetDescription>
+					{selected && (
 						<UserPanel
 							key={`${selected._id}-${selected.role}`}
 							user={selected}
@@ -436,16 +429,9 @@ export default function Users() {
 							onClose={() => setSelectedId(null)}
 							onBlockToggle={onBlockToggle}
 						/>
-					) : (
-						<EmptyState
-							icon={UserRoundSearch}
-							title="Select a user"
-							description="Choose View on any row to see their details and change their role."
-							className="py-6"
-						/>
 					)}
-				</aside>
-			</div>
+				</SheetContent>
+			</Sheet>
 
 			<AlertDialog open={Boolean(blockTarget)} onOpenChange={(open) => !open && setBlockTarget(null)}>
 				<AlertDialogContent size="sm">

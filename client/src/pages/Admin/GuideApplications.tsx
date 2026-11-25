@@ -3,6 +3,7 @@ import { ApplicationStatusBadge } from "@/components/dashboard/StatusBadge";
 import { EmptyState, ErrorState, TableSkeleton } from "@/components/dashboard/States";
 import { btnDangerGhost, btnGhost, btnPrimary, btnSm, dashCard, dashInput, help, label, td, th } from "@/components/dashboard/styles";
 import { Pagination, SearchField, SelectField } from "@/components/dashboard/TableControls";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { formatDate, formatNumber, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -14,7 +15,7 @@ import {
 } from "@/redux/features/GuideApplication/guideApplication.api";
 import type { IGuideApplication, TApiError, TApplicationStatus } from "@/types";
 import { BadgeCheck, ClipboardList, SearchX, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
 
@@ -176,7 +177,6 @@ export default function GuideApplications() {
 	const [search, setSearch] = useState("");
 	const [division, setDivision] = useState("");
 	const [selectedId, setSelectedId] = useState<string | null>(null);
-	const panelRef = useRef<HTMLElement>(null);
 
 	const searchTerm = useDebouncedValue(search.trim());
 
@@ -200,12 +200,7 @@ export default function GuideApplications() {
 		setSearchParams(key === "PENDING" ? {} : { status: key }, { replace: true });
 	};
 
-	const select = (id: string) => {
-		setSelectedId(id);
-		if (window.matchMedia("(max-width: 1279px)").matches) {
-			requestAnimationFrame(() => panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
-		}
-	};
+	const select = (id: string) => setSelectedId(id);
 
 	return (
 		<div className="flex flex-col gap-5">
@@ -236,8 +231,7 @@ export default function GuideApplications() {
 				})}
 			</div>
 
-			<div className="flex flex-wrap items-start gap-5.5">
-				<section className={cn(dashCard, "min-w-0 flex-[999_1_560px] overflow-hidden")}>
+			<section className={cn(dashCard, "overflow-hidden")}>
 					<div className="flex flex-wrap gap-3 border-b border-border p-4">
 						<SearchField
 							id="ga-q"
@@ -277,7 +271,7 @@ export default function GuideApplications() {
 									<th scope="col" className={cn(th, cell, "text-right")}>
 										Experience
 									</th>
-									<th scope="col" className={cn(th, cell, "hidden 2xl:table-cell")}>
+									<th scope="col" className={cn(th, cell)}>
 										Languages
 									</th>
 									<th scope="col" className={cn(th, cell)}>
@@ -342,7 +336,7 @@ export default function GuideApplications() {
 										</td>
 										<td className={cn(td, cell)}>{application.division.name}</td>
 										<td className={cn(td, cell, "text-right tabular-nums")}>{application.experienceYears} yr{application.experienceYears === 1 ? "" : "s"}</td>
-										<td className={cn(td, cell, "hidden max-w-44 truncate text-muted-foreground 2xl:table-cell")}>
+										<td className={cn(td, cell, "max-w-44 truncate text-muted-foreground")}>
 											{application.languages.join(", ") || "—"}
 										</td>
 										<td className={cn(td, cell, "whitespace-nowrap tabular-nums")}>{formatDate(application.createdAt)}</td>
@@ -373,23 +367,15 @@ export default function GuideApplications() {
 					)}
 				</section>
 
-				<aside
-					ref={panelRef}
-					aria-label="Application details"
-					className={cn(dashCard, "flex w-full scroll-mt-4 flex-col gap-4 p-5.5 xl:max-w-95 xl:flex-[1_1_320px]")}
-				>
-					{selected ? (
+			<Sheet open={Boolean(selected)} onOpenChange={(open) => !open && setSelectedId(null)}>
+				<SheetContent showCloseButton={false} className="w-full gap-4 overflow-y-auto bg-card p-5.5 sm:max-w-md">
+					<SheetTitle className="sr-only">Application details</SheetTitle>
+					<SheetDescription className="sr-only">Application details and actions</SheetDescription>
+					{selected && (
 						<ReviewPanel key={`${selected._id}-${selected.status}`} application={selected} onClose={() => setSelectedId(null)} />
-					) : (
-						<EmptyState
-							icon={ClipboardList}
-							title="Select an application"
-							description="Choose Review on any row to read it and approve or reject."
-							className="py-6"
-						/>
 					)}
-				</aside>
-			</div>
+				</SheetContent>
+			</Sheet>
 		</div>
 	);
 }
