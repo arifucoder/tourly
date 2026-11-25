@@ -1,16 +1,45 @@
+import tourlyMark from "@/assets/brand/tourly-mark.svg";
+import { cn } from "@/lib/utils";
 import { Link } from "react-router";
 
-export default function Logo() {
+const BRAND_NAME = "tourly";
+
+type LogoProps = {
+	className?: string;
+	to?: string;
+};
+
+export function LogoMark({ className }: { className?: string }) {
 	return (
-		<Link to="/" className="flex items-center gap-2 text-foreground">
-			<svg width="26" height="30" viewBox="0 0 26 30" aria-hidden="true">
-				<path
-					d="M13 0C5.8 0 0 5.6 0 12.6 0 21.7 13 30 13 30s13-8.3 13-17.4C26 5.6 20.2 0 13 0z"
-					className="fill-primary"
-				/>
-				<circle cx="13" cy="12.5" r="5" className="fill-background" />
-			</svg>
-			<span className="text-[22px] font-bold tracking-tight">Phovia Tour</span>
+		<img
+			src={tourlyMark}
+			alt=""
+			aria-hidden="true"
+			width={34}
+			height={34}
+			className={cn("size-8.5 shrink-0", className)}
+		/>
+	);
+}
+
+export function LogoText({ className }: { className?: string }) {
+	return (
+		<span className={cn("text-[21px] font-bold leading-none tracking-[-0.01em]", className)}>
+			{BRAND_NAME}
+			<span className="text-primary">.</span>
+		</span>
+	);
+}
+
+export default function Logo({ className, to = "/" }: LogoProps) {
+	return (
+		<Link
+			to={to}
+			aria-label="Tourly home"
+			className={cn("flex items-center gap-2.5 text-foreground no-underline", className)}
+		>
+			<LogoMark />
+			<LogoText />
 		</Link>
 	);
 }

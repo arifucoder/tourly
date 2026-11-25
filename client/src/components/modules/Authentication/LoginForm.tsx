@@ -150,7 +150,7 @@ export default function LoginForm() {
 					</form>
 
 					<p className="mt-6 text-center text-sm text-foreground">
-						New to Phovia Tour?{" "}
+						New to Tourly?{" "}
 						<a href="/signup" className="font-medium text-indigo-600 underline underline-offset-4">
 							Create an account
 						</a>

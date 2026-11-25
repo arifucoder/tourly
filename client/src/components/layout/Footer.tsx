@@ -61,7 +61,7 @@ export default function Footer() {
 				</div>
 
 				<div className="flex flex-col gap-3 border-t border-border pt-5.5 text-[13px] sm:flex-row sm:items-center sm:justify-between">
-					<span className="text-muted-foreground">© 2026 Phovia Tour. All rights reserved.</span>
+					<span className="text-muted-foreground">© 2026 Tourly. All rights reserved.</span>
 					<div className="flex gap-6">
 						<Link to="/terms" className="text-[13px] text-muted-foreground transition-colors hover:text-primary">
 							Terms of service

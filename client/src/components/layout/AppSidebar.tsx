@@ -11,6 +11,7 @@ import {
 	SidebarMenuItem,
 	SidebarRail,
 } from "@/components/ui/sidebar";
+import { LogoMark, LogoText } from "@/assets/icons/Logo";
 import { useUserInfoQuery } from "@/redux/features/auth/auth.api";
 import { getSidebarItems } from "@/utils/getSidebarItems";
 import * as React from "react";
@@ -27,15 +28,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 		<Sidebar {...props}>
 			<SidebarHeader>
 				<Link to="/" className="flex items-center gap-2.5 p-2">
-					<svg width="25" height="29" viewBox="0 0 26 30" aria-hidden="true">
-						<path
-							d="M13 0C5.8 0 0 5.6 0 12.6 0 21.7 13 30 13 30s13-8.3 13-17.4C26 5.6 20.2 0 13 0z"
-							className="fill-sidebar-primary"
-						/>
-						<circle cx="13" cy="12.5" r="5" fill="#fff" />
-					</svg>
-					<span className="leading-tight">
-						<span className="block text-lg font-bold text-white">Phovia Tour</span>
+					<LogoMark />
+					<span className="flex flex-col gap-1">
+						<LogoText className="text-white" />
 						<span className="text-xs text-sidebar-foreground/70">Dashboard console</span>
 					</span>
 				</Link>
