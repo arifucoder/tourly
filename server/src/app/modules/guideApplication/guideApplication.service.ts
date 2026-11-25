@@ -1,6 +1,8 @@
 import httpStatus from "http-status-codes";
 import { isValidObjectId } from "mongoose";
+import { envVars } from "../../config/env";
 import AppError from "../../errorHelpers/AppError";
+import { sendEmail } from "../../utils/sendEmail";
 import { Division } from "../division/division.model";
 import { Role } from "../user/user.interface";
 import { User } from "../user/user.model";
@@ -139,6 +141,27 @@ const getApplicationById = async (applicationId: string) => {
 	return application;
 };
 
+const notifyApplicant = async (application: Awaited<ReturnType<typeof getApplicationById>>) => {
+	const user = application.user as unknown as { name: string; email: string } | null;
+	const division = application.division as unknown as { name: string } | null;
+	if (!user?.email) return;
+
+	const approved = application.status === GUIDE_APPLICATION_STATUS.APPROVED;
+
+	await sendEmail({
+		to: user.email,
+		subject: approved ? "You're now a Tourly guide" : "Update on your Tourly guide application",
+		templateName: "guideApplicationResult",
+		templateData: {
+			name: user.name,
+			approved,
+			divisionName: division?.name ?? "your division",
+			reviewNote: application.reviewNote ?? "",
+			dashboardUrl: `${envVars.FRONTEND_URL}${approved ? "/guide" : "/user"}`,
+		},
+	});
+};
+
 const reviewApplication = async (
 	applicationId: string,
 	reviewerId: string,
@@ -185,7 +208,12 @@ const reviewApplication = async (
 		await session.endSession();
 	}
 
-	return getApplicationById(applicationId);
+	const reviewed = await getApplicationById(applicationId);
+	notifyApplicant(reviewed).catch((error: unknown) => {
+		console.error("Guide application email failed", applicationId, error);
+	});
+
+	return reviewed;
 };
 
 export const GuideApplicationService = {

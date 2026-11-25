@@ -1,0 +1,13 @@
+<h2>Hello <%= name %>,</h2>
+<% if (approved) { %>
+<p>Great news — your application to guide tours in <strong><%= divisionName %></strong> has been <strong>approved</strong>.</p>
+<p>You can now see the trips assigned to you from your guide dashboard.</p>
+<% } else { %>
+<p>Thank you for applying to guide tours in <strong><%= divisionName %></strong>. After review, we can't approve your application right now.</p>
+<p>You're welcome to apply again later.</p>
+<% } %>
+<% if (reviewNote) { %>
+<p><strong>Note from our team:</strong> <%= reviewNote %></p>
+<% } %>
+<p><a href="<%= dashboardUrl %>">Open your Tourly dashboard</a></p>
+<p>— The Tourly team</p>
