@@ -7,6 +7,9 @@ type TToursParams = {
 	sort?: string;
 	division?: string;
 	tourType?: string;
+	location?: string;
+	minPrice?: number;
+	maxPrice?: number;
 	fields?: string;
 };
 export const tourApi = baseApi.injectEndpoints({

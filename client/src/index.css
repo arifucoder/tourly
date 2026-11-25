@@ -53,6 +53,7 @@
   --color-cyan-text: var(--cyan-text);
   --color-navy: var(--navy);
   --color-cta: var(--cta);
+  --color-surface-2: var(--surface-2);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-destructive-soft: var(--destructive-soft);
   --color-success: var(--success);
@@ -77,13 +78,8 @@
   --color-status-cancelled: var(--status-cancelled);
   --color-status-failed: var(--status-failed);
 
-  --shadow-card: 0 20px 44px rgba(45, 49, 52, 0.08);
-
-  --primary-text: #C2410C;
-  --cyan: #31C3E0;
-  --cyan-text: #0E7C92;
-  --navy: #0A192D;
-  --cta: #F2C94C;
+  --shadow-card: var(--shadow-card);
+  --shadow-soft: var(--shadow-soft);
 
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -125,8 +121,8 @@
   --destructive-soft: #FDECEA;
   --success: #17714A;
   --success-soft: #E2F3EA;
-  --warning: #8F5400;
-  --warning-soft: #FFF0D4;
+  --warning: #9A5B00;
+  --warning-soft: #FFF4DC;
   --info: #21539E;
   --info-soft: #E5EDFA;
 
@@ -135,8 +131,8 @@
   --yellow-soft: #FFF4DC;
   --mint-soft: #E3F7EF;
   --star: #FFB547;
-  --placeholder: #EEEBF8;
-  --placeholder-foreground: #8A86AE;
+  --placeholder: #F4EEE9;
+  --placeholder-foreground: #9A8F86;
 
   --status-complete: #2E8B57;
   --status-pending: #D9A21B;
@@ -159,6 +155,14 @@
   --sidebar-ring: #FF7B29;
 
   --shadow-card: 0 20px 44px rgba(45, 49, 52, 0.08);
+  --shadow-soft: 0 12px 34px rgba(45, 49, 52, 0.08);
+
+  --primary-text: #C2410C;
+  --cyan: #31C3E0;
+  --cyan-text: #0E7C92;
+  --navy: #0A192D;
+  --cta: #F2C94C;
+  --surface-2: #F8F7F5;
 
   --sidebar: #1C1A3A;
   --sidebar-foreground: #C9C6E4;
@@ -200,7 +204,7 @@
   --success: #6DCB98;
   --success-soft: #14301F;
   --warning: #F1C46E;
-  --warning-soft: #382B10;
+  --warning-soft: #3A3020;
   --info: #9DBBF0;
   --info-soft: #172338;
 
@@ -209,8 +213,8 @@
   --yellow-soft: #3A3020;
   --mint-soft: #1D3530;
   --star: #FFB547;
-  --placeholder: #26243F;
-  --placeholder-foreground: #7E7AA6;
+  --placeholder: #262A2E;
+  --placeholder-foreground: #8C9399;
 
   --status-complete: #4FB67C;
   --status-pending: #E2B23A;
@@ -237,6 +241,8 @@
   --primary-text: #FF9A5C;
   --cyan-text: #5FD4EC;
   --navy: #31C3E0;
+  --surface-2: #22262A;
+  --shadow-soft: 0 12px 34px rgba(0, 0, 0, 0.35);
 
 
   --sidebar: #1C1A3A;

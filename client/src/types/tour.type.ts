@@ -32,6 +32,7 @@ export interface ITour {
 	minAge?: number;
 	division: { _id: string; name: string; slug?: string } | null;
 	tourType: { _id: string; name: string } | null;
+	seatsLeft?: number | null;
 	createdAt?: string;
 	updatedAt?: string;
 }
@@ -45,5 +46,7 @@ export interface ITourFilterOption {
 export interface ITourFilterOptions {
 	divisions: ITourFilterOption[];
 	tourTypes: ITourFilterOption[];
+	locations: { name: string; count: number }[];
+	priceRange: { min: number; max: number };
 	totalTours: number;
 }

@@ -1,22 +1,18 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import TourCard from "@/components/modules/Tour/TourCard";
+import TourFilters, {
+	countActiveFilters,
+	emptyTourFilters,
+	tourInputCls,
+	tourPrimaryBtn,
+	type TTourFilters,
+} from "@/components/modules/Tour/TourFilters";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { useGetTourFilterOptionsQuery, useGetToursQuery } from "@/redux/features/Tour/tour.api";
-import type { ITour, ITourFilterOption } from "@/types";
-import {
-	AlertCircle,
-	ChevronLeft,
-	ChevronRight,
-	ImageIcon,
-	MapPin,
-	RefreshCw,
-	Search,
-	SearchX,
-	SlidersHorizontal,
-} from "lucide-react";
-import { useState, type FormEvent } from "react";
-import { Link } from "react-router";
+import { AlertCircle, ChevronLeft, ChevronRight, RefreshCw, Search, SearchX } from "lucide-react";
+import { useState, type FormEvent, type ReactNode } from "react";
+import { Link, useSearchParams } from "react-router";
 
 const LIMIT = 12;
 
@@ -26,27 +22,16 @@ const SORT_OPTIONS = [
 	{ value: "-costFrom", label: "Price: high to low" },
 ];
 
-const formatPrice = (amount?: number) => (amount === undefined ? "—" : amount.toLocaleString("en-IN"));
+const gridCls = "grid grid-cols-[repeat(auto-fill,minmax(min(250px,100%),1fr))] gap-6";
 
-const shortDate = (date: string) => new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+const outlineBtn =
+	"inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border-[1.5px] border-primary bg-transparent px-5.5 text-[14.5px] font-medium whitespace-nowrap text-primary-text transition-colors hover:bg-accent";
 
-const getDays = (start: string, end: string) =>
-	Math.round((new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60 * 60 * 24)) + 1;
+const squareBtn =
+	"inline-flex h-11 min-w-11 items-center justify-center rounded-[10px] border-[1.5px] border-border bg-card px-2.5 font-medium text-foreground transition-colors hover:border-primary/50 disabled:pointer-events-none disabled:opacity-50";
 
-const getTourMeta = (tour: ITour) => {
-	const parts: string[] = [];
-	if (tour.startDate && tour.endDate) {
-		const days = getDays(tour.startDate, tour.endDate);
-		parts.push(`${days} ${days === 1 ? "day" : "days"}`);
-		parts.push(
-			tour.startDate.slice(0, 10) === tour.endDate.slice(0, 10)
-				? shortDate(tour.startDate)
-				: `${shortDate(tour.startDate)} – ${shortDate(tour.endDate)}`,
-		);
-	}
-	if (tour.maxGuest) parts.push(`Max ${tour.maxGuest} guests`);
-	return parts.join(" · ");
-};
+const squareActive =
+	"border-primary bg-primary text-primary-foreground shadow-[0_10px_22px_rgb(255_123_41/0.25)] hover:border-primary";
 
 const getPageNumbers = (current: number, total: number): (number | "…")[] => {
 	if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
@@ -58,158 +43,69 @@ const getPageNumbers = (current: number, total: number): (number | "…")[] => {
 	return pages;
 };
 
+const filtersFromParams = (params: URLSearchParams): TTourFilters => ({
+	divisions: params.get("division")?.split(",").filter(Boolean) ?? [],
+	tourType: params.get("tourType") ?? "",
+	location: params.get("location") ?? "",
+});
 
-const selectCls =
-	"h-11.5 w-full rounded-lg border-[1.5px] border-border bg-background px-3.5 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
-
-type FiltersProps = {
-	divisions: ITourFilterOption[];
-	tourTypes: ITourFilterOption[];
-	totalTours: number;
-	division: string;
-	tourType: string;
-	onDivisionChange: (value: string) => void;
-	onTourTypeChange: (value: string) => void;
-	onReset: () => void;
-	idPrefix: string;
-};
-
-function Filters({
-	divisions,
-	tourTypes,
-	totalTours,
-	division,
-	tourType,
-	onDivisionChange,
-	onTourTypeChange,
-	onReset,
-	idPrefix,
-}: FiltersProps) {
-	const hasFilter = Boolean(division || tourType);
-
+function StateCard({ children }: { children: ReactNode }) {
 	return (
-		<div className="flex flex-col gap-6.5">
-			<div className="flex items-center justify-between">
-				<h2 className="text-lg font-semibold">Filters</h2>
-				<Button
-					variant="link"
-					type="button"
-					onClick={onReset}
-					disabled={!hasFilter}
-					className="h-auto p-0 text-[13.5px]"
-				>
-					Reset all
-				</Button>
-			</div>
-
-			{divisions.length > 0 && (
-				<fieldset className="flex flex-col gap-0.5">
-					<legend className="mb-2.5 text-sm font-semibold">Division</legend>
-					{[{ _id: "", name: "All divisions", count: totalTours }, ...divisions].map((d) => (
-						<label
-							key={d._id || "all"}
-							htmlFor={`${idPrefix}-div-${d._id || "all"}`}
-							className="flex min-h-8.5 cursor-pointer items-center gap-2.5 text-sm"
-						>
-							<input
-								id={`${idPrefix}-div-${d._id || "all"}`}
-								type="radio"
-								name={`${idPrefix}-division`}
-								checked={division === d._id}
-								onChange={() => onDivisionChange(d._id)}
-								className="size-4.5 cursor-pointer accent-primary"
-							/>
-							<span className="flex-1">{d.name}</span>
-							<span className="text-[12.5px] text-muted-foreground">{d.count}</span>
-						</label>
-					))}
-				</fieldset>
-			)}
-
-			{tourTypes.length > 0 && (
-				<fieldset>
-					<legend className="mb-2.5 text-sm font-semibold">Tour type</legend>
-					<div className="flex flex-wrap gap-2">
-						{[{ _id: "", name: "All", count: totalTours }, ...tourTypes].map((t) => {
-							const active = tourType === t._id;
-							return (
-								<button
-									key={t._id || "all"}
-									type="button"
-									aria-pressed={active}
-									onClick={() => onTourTypeChange(t._id)}
-									className={[
-										"inline-flex h-9.5 items-center gap-1.5 rounded-full border-[1.5px] px-3.5 text-[13.5px] font-medium transition-colors",
-										active
-											? "border-primary bg-accent text-primary"
-											: "border-border bg-background text-foreground hover:border-primary/50",
-									].join(" ")}
-								>
-									{t.name}
-									<span className={active ? "text-primary/70" : "text-muted-foreground"}>{t.count}</span>
-								</button>
-							);
-						})}
-					</div>
-				</fieldset>
-			)}
+		<div className="flex flex-col items-center gap-3 rounded-[14px] bg-card px-6 py-16 text-center shadow-soft">
+			{children}
 		</div>
 	);
 }
 
 export default function Tours() {
-	const [searchInput, setSearchInput] = useState("");
-	const [searchTerm, setSearchTerm] = useState("");
-	const [division, setDivision] = useState("");
-	const [tourType, setTourType] = useState("");
+	const [searchParams] = useSearchParams();
+	const initialSearch = searchParams.get("searchTerm") ?? "";
+
+	const [searchInput, setSearchInput] = useState(initialSearch);
+	const [searchTerm, setSearchTerm] = useState(initialSearch);
+	const [applied, setApplied] = useState<TTourFilters>(() => filtersFromParams(searchParams));
+	const [draft, setDraft] = useState<TTourFilters>(applied);
 	const [sort, setSort] = useState("-createdAt");
 	const [page, setPage] = useState(1);
+	const [sheetOpen, setSheetOpen] = useState(false);
 
-	const params = {
+	const { data, isLoading, isError, isFetching, refetch } = useGetToursQuery({
 		page,
 		limit: LIMIT,
 		sort,
 		...(searchTerm && { searchTerm }),
-		...(division && { division }),
-		...(tourType && { tourType }),
-	};
-
-	const { data, isLoading, isError, isFetching, refetch } = useGetToursQuery(params);
-
+		...(applied.divisions.length > 0 && { division: applied.divisions.join(",") }),
+		...(applied.tourType && { tourType: applied.tourType }),
+		...(applied.location && { location: applied.location }),
+		...(applied.minPrice !== undefined && { minPrice: applied.minPrice }),
+		...(applied.maxPrice !== undefined && { maxPrice: applied.maxPrice }),
+	});
 	const { data: filterOptions } = useGetTourFilterOptionsQuery();
-	const divisions = filterOptions?.divisions ?? [];
-	const tourTypes = filterOptions?.tourTypes ?? [];
-	const totalTours = filterOptions?.totalTours ?? 0;
 
 	const tours = data?.data ?? [];
 	const total = data?.meta?.total ?? 0;
 	const totalPage = data?.meta?.totalPage ?? 1;
-
-	const activeFilterCount = [division, tourType].filter(Boolean).length;
+	const activeCount = countActiveFilters(applied);
 
 	const handleSearch = (e: FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		setSearchTerm(searchInput.trim());
 		setPage(1);
 	};
-	const handleDivision = (value: string) => {
-		setDivision(value);
+	const handleApply = () => {
+		setApplied(draft);
 		setPage(1);
-	};
-	const handleTourType = (value: string) => {
-		setTourType(value);
-		setPage(1);
-	};
-	const handleSort = (value: string) => {
-		setSort(value);
-		setPage(1);
+		setSheetOpen(false);
 	};
 	const handleReset = () => {
-		setDivision("");
-		setTourType("");
+		setDraft(emptyTourFilters);
+		setApplied(emptyTourFilters);
+		setPage(1);
+	};
+	const handleClearAll = () => {
+		handleReset();
 		setSearchInput("");
 		setSearchTerm("");
-		setPage(1);
 	};
 	const goToPage = (p: number) => {
 		setPage(p);
@@ -217,63 +113,63 @@ export default function Tours() {
 	};
 
 	const filterProps = {
-		divisions,
-		tourTypes,
-		totalTours,
-		division,
-		tourType,
-		onDivisionChange: handleDivision,
-		onTourTypeChange: handleTourType,
+		options: filterOptions,
+		value: draft,
+		onChange: setDraft,
+		onApply: handleApply,
 		onReset: handleReset,
 	};
 
 	return (
 		<div className="bg-background">
-			<section className="bg-muted">
-				<div className="mx-auto flex max-w-[1200px] flex-col gap-4.5 px-4 py-12 sm:px-10">
+			<section className="bg-surface-2">
+				<div className="mx-auto flex max-w-300 flex-col gap-4.5 px-4 py-12 sm:px-10">
 					<nav aria-label="Breadcrumb" className="flex gap-2 text-[13.5px] text-muted-foreground">
 						<Link to="/" className="hover:text-foreground">
 							Home
 						</Link>
 						<span aria-hidden="true">/</span>
-						<span className="font-medium text-primary">Tours</span>
+						<span className="font-medium text-primary-text">Tours</span>
 					</nav>
 
-					<h1 className="text-3xl font-bold tracking-tight sm:text-[40px]">Find your tour</h1>
+					<h1 className="text-[28px] font-bold sm:text-[40px]">Find your tour</h1>
 
 					<form
 						role="search"
 						onSubmit={handleSearch}
-						className="flex max-w-[720px] flex-col gap-2.5 rounded-xl bg-card p-2.5 shadow-card sm:flex-row"
+						className="flex max-w-180 flex-col gap-2.5 rounded-[14px] bg-card p-2.5 shadow-soft sm:flex-row"
 					>
 						<label htmlFor="tour-search" className="sr-only">
 							Search tours
 						</label>
 						<div className="relative flex-1">
-							<Search className="pointer-events-none absolute top-1/2 left-3.5 size-4.5 -translate-y-1/2 text-muted-foreground" />
-							<Input
+							<Search className="pointer-events-none absolute top-3.5 left-3.5 size-4.5 text-muted-foreground" />
+							<input
 								id="tour-search"
 								type="search"
 								value={searchInput}
 								onChange={(e) => setSearchInput(e.target.value)}
 								placeholder="Search by tour name or location…"
-								className="h-11.5 rounded-lg border-transparent pl-11 text-[15px] shadow-none"
+								className={cn(tourInputCls, "border-transparent pl-10.5")}
 							/>
 						</div>
-						<Button type="submit" className="h-11.5 rounded-lg px-6 text-[14.5px] font-semibold">
+						<button type="submit" className={tourPrimaryBtn}>
 							Search
-						</Button>
+						</button>
 					</form>
 				</div>
 			</section>
 
-			<div className="mx-auto flex max-w-[1200px] items-start gap-8 px-4 pt-10 pb-22 sm:px-10">
-				<aside aria-label="Filters" className="hidden w-70 shrink-0 rounded-xl bg-card p-6 shadow-card lg:block">
-					<Filters {...filterProps} idPrefix="desk" />
+			<div className="mx-auto flex max-w-300 flex-wrap items-start gap-8 px-4 pt-10 pb-22 sm:px-10">
+				<aside
+					aria-label="Filters"
+					className="hidden shrink-0 grow-0 basis-70 rounded-[14px] bg-card p-6 shadow-soft min-[981px]:block"
+				>
+					<TourFilters {...filterProps} idPrefix="desk" />
 				</aside>
 
-				<main className="flex min-w-0 flex-1 flex-col gap-6">
-					<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+				<main className="flex min-w-0 flex-[999_1_560px] flex-col gap-6">
+					<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
 						<p>
 							{isLoading ? (
 								<span className="text-muted-foreground">Loading tours…</span>
@@ -288,22 +184,33 @@ export default function Tours() {
 						</p>
 
 						<div className="flex items-center gap-2.5">
-							<Sheet>
-								<SheetTrigger asChild>
-									<Button
-										variant="outline"
-										type="button"
-										className="h-11.5 flex-1 gap-2 rounded-lg border-[1.5px] border-primary text-primary lg:hidden"
+							<Sheet
+								open={sheetOpen}
+								onOpenChange={(open) => {
+									if (open) setDraft(applied);
+									setSheetOpen(open);
+								}}
+							>
+								<SheetTrigger className={cn(outlineBtn, "flex-1 min-[981px]:hidden")}>
+									<svg
+										width="18"
+										height="18"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="2"
+										strokeLinecap="round"
+										aria-hidden="true"
 									>
-										<SlidersHorizontal className="size-4.5" />
-										Filters{activeFilterCount > 0 && ` · ${activeFilterCount}`}
-									</Button>
+										<path d="M4 6h16M7 12h10M10 18h4" />
+									</svg>
+									Filters{activeCount > 0 && ` · ${activeCount}`}
 								</SheetTrigger>
-								<SheetContent side="left" className="w-80 overflow-y-auto p-6">
+								<SheetContent side="left" className="w-80 overflow-y-auto bg-background p-6">
 									<SheetHeader className="sr-only">
 										<SheetTitle>Filters</SheetTitle>
 									</SheetHeader>
-									<Filters {...filterProps} idPrefix="mob" />
+									<TourFilters {...filterProps} idPrefix="mob" />
 								</SheetContent>
 							</Sheet>
 
@@ -313,8 +220,11 @@ export default function Tours() {
 							<select
 								id="tour-sort"
 								value={sort}
-								onChange={(e) => handleSort(e.target.value)}
-								className={`${selectCls} flex-1 sm:w-48 sm:flex-none`}
+								onChange={(e) => {
+									setSort(e.target.value);
+									setPage(1);
+								}}
+								className={cn(tourInputCls, "w-auto min-w-47.5 flex-1")}
 							>
 								{SORT_OPTIONS.map((o) => (
 									<option key={o.value} value={o.value}>
@@ -326,9 +236,9 @@ export default function Tours() {
 					</div>
 
 					{isLoading && (
-						<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+						<div className={gridCls}>
 							{Array.from({ length: 6 }).map((_, i) => (
-								<div key={i} className="overflow-hidden rounded-xl bg-card shadow-card">
+								<div key={i} className="overflow-hidden rounded-[14px] bg-card shadow-soft">
 									<Skeleton className="h-50 rounded-none" />
 									<div className="flex flex-col gap-2.5 p-4.5">
 										<Skeleton className="h-3.5 w-28" />
@@ -342,23 +252,23 @@ export default function Tours() {
 					)}
 
 					{isError && (
-						<div className="flex flex-col items-center gap-3 rounded-xl bg-card px-6 py-16 text-center shadow-card">
-							<span className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+						<StateCard>
+							<span className="flex size-12 items-center justify-center rounded-full bg-destructive-soft text-destructive">
 								<AlertCircle className="size-5" />
 							</span>
 							<div>
 								<p className="font-semibold">Couldn't load tours</p>
 								<p className="text-[13.5px] text-muted-foreground">Check your connection and try again.</p>
 							</div>
-							<Button variant="outline" onClick={() => refetch()} className="h-10 gap-2 rounded-lg">
+							<button type="button" onClick={() => refetch()} className={outlineBtn}>
 								<RefreshCw className="size-4" />
 								Try again
-							</Button>
-						</div>
+							</button>
+						</StateCard>
 					)}
 
 					{!isLoading && !isError && tours.length === 0 && (
-						<div className="flex flex-col items-center gap-3 rounded-xl bg-card px-6 py-16 text-center shadow-card">
+						<StateCard>
 							<span className="flex size-12 items-center justify-center rounded-full bg-accent text-accent-foreground">
 								<SearchX className="size-5" />
 							</span>
@@ -366,106 +276,60 @@ export default function Tours() {
 								<p className="font-semibold">No tours found</p>
 								<p className="text-[13.5px] text-muted-foreground">Try a different search or clear the filters.</p>
 							</div>
-							<Button variant="outline" onClick={handleReset} className="h-10 rounded-lg">
+							<button type="button" onClick={handleClearAll} className={outlineBtn}>
 								Clear search & filters
-							</Button>
-						</div>
+							</button>
+						</StateCard>
 					)}
 
 					{!isLoading && !isError && tours.length > 0 && (
-						<div
-							className={[
-								"grid grid-cols-1 gap-6 transition-opacity sm:grid-cols-2 xl:grid-cols-3",
-								isFetching ? "opacity-60" : "",
-							].join(" ")}
-						>
+						<div className={cn(gridCls, "transition-opacity", isFetching && "opacity-60")}>
 							{tours.map((tour) => (
-								<Link
-									key={tour._id}
-									to={`/tours/${tour.slug}`}
-									className="group flex flex-col overflow-hidden rounded-xl bg-card text-foreground shadow-card transition-shadow hover:shadow-lg focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-								>
-									<div className="relative flex h-50 items-center justify-center overflow-hidden bg-accent text-muted-foreground">
-										{tour.images?.[0] ? (
-											<img
-												src={tour.images[0]}
-												alt={tour.title}
-												loading="lazy"
-												className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
-											/>
-										) : (
-											<ImageIcon className="size-7" />
-										)}
-										{tour.tourType && (
-											<span className="absolute top-3 left-3 rounded-full bg-card px-2.5 py-1 text-xs font-semibold text-foreground">
-												{tour.tourType.name}
-											</span>
-										)}
-									</div>
-
-									<div className="flex flex-1 flex-col gap-1.5 px-4.5 pt-4 pb-4.5">
-										{(tour.location || tour.division) && (
-											<span className="flex items-center gap-1 text-[12.5px] font-medium text-primary">
-												<MapPin className="size-3.5 shrink-0" />
-												<span className="truncate">
-													{[tour.location, tour.division?.name].filter(Boolean).join(", ")}
-												</span>
-											</span>
-										)}
-										<h3 className="text-base leading-snug font-semibold group-hover:text-primary">{tour.title}</h3>
-										{getTourMeta(tour) && <p className="text-[12.5px] text-muted-foreground">{getTourMeta(tour)}</p>}
-										<div className="mt-auto pt-1.5">
-											<span className="text-xs text-muted-foreground">from </span>
-											<strong className="text-lg font-bold text-primary">৳{formatPrice(tour.costFrom)}</strong>
-										</div>
-									</div>
-								</Link>
+								<TourCard key={tour._id} tour={tour} />
 							))}
 						</div>
 					)}
 
 					{!isLoading && !isError && totalPage > 1 && (
 						<nav aria-label="Pagination" className="flex flex-wrap justify-center gap-2 pt-4">
-							<Button
-								variant="outline"
-								size="icon"
+							<button
+								type="button"
 								onClick={() => goToPage(page - 1)}
 								disabled={page === 1 || isFetching}
 								aria-label="Previous page"
-								className="size-11 rounded-lg border-[1.5px]"
+								className={squareBtn}
 							>
-								<ChevronLeft className="size-4.5" />
-							</Button>
+								<ChevronLeft className="size-4.5" strokeWidth={2.2} />
+							</button>
 
 							{getPageNumbers(page, totalPage).map((p, i) =>
 								p === "…" ? (
-									<span key={`dots-${i}`} className="flex size-11 items-center justify-center text-muted-foreground">
+									<span key={`dots-${i}`} className={cn(squareBtn, "border-transparent bg-transparent")}>
 										…
 									</span>
 								) : (
-									<Button
+									<button
 										key={p}
-										variant={p === page ? "default" : "outline"}
+										type="button"
 										onClick={() => goToPage(p)}
 										disabled={isFetching}
 										aria-current={p === page ? "page" : undefined}
-										className="size-11 rounded-lg border-[1.5px] font-medium"
+										className={cn(squareBtn, p === page && squareActive)}
 									>
 										{p}
-									</Button>
+									</button>
 								),
 							)}
 
-							<Button
-								variant="outline"
-								size="icon"
+							<button
+								type="button"
 								onClick={() => goToPage(page + 1)}
 								disabled={page >= totalPage || isFetching}
 								aria-label="Next page"
-								className="size-11 rounded-lg border-[1.5px]"
+								className={squareBtn}
 							>
-								<ChevronRight className="size-4.5" />
-							</Button>
+								<ChevronRight className="size-4.5" strokeWidth={2.2} />
+							</button>
 						</nav>
 					)}
 				</main>
