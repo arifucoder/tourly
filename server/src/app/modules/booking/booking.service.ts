@@ -575,46 +575,58 @@ const loadAssignableBooking = async (bookingId: string) => {
 
 const getAvailableGuides = async (bookingId: string) => {
 	const booking = await loadAssignableBooking(bookingId);
+	const divisionId = booking.tour.division.toString();
 
-	const applications = await GuideApplication.find({
-		division: booking.tour.division,
-		status: GUIDE_APPLICATION_STATUS.APPROVED,
-	})
-		.select("user experienceYears languages")
-		.lean();
-
-	const guides = await User.find({
-		_id: { $in: applications.map((application) => application.user) },
-		role: Role.GUIDE,
-		isActive: IsActive.ACTIVE,
-	})
+	const guides = await User.find({ role: Role.GUIDE, isActive: IsActive.ACTIVE })
 		.where("isDeleted")
 		.ne(true)
 		.select("name email phone picture")
 		.lean();
 
-	const conflicts = await findGuideConflicts(
-		guides.map((guide) => guide._id),
-		booking,
-		booking.tour,
-	);
-	const profileByUser = new Map(applications.map((application) => [application.user.toString(), application]));
+	const [applications, conflicts] = await Promise.all([
+		GuideApplication.find({
+			user: { $in: guides.map((guide) => guide._id) },
+			status: GUIDE_APPLICATION_STATUS.APPROVED,
+		})
+			.select("user division experienceYears languages")
+			.populate<{ division: { _id: Types.ObjectId; name: string } | null }>("division", "name")
+			.lean(),
+		findGuideConflicts(
+			guides.map((guide) => guide._id),
+			booking,
+			booking.tour,
+		),
+	]);
+
+	const applicationsByUser = new Map<string, typeof applications>();
+	for (const application of applications) {
+		const key = application.user.toString();
+		applicationsByUser.set(key, [...(applicationsByUser.get(key) ?? []), application]);
+	}
 	const currentGuide = booking.guide?.toString() ?? null;
 
 	const data = guides
 		.map((guide) => {
 			const id = guide._id.toString();
-			const profile = profileByUser.get(id);
+			const approved = applicationsByUser.get(id) ?? [];
+			const profile = approved.find((item) => item.division?._id.toString() === divisionId) ?? approved[0];
 			return {
 				...guide,
 				experienceYears: profile?.experienceYears ?? 0,
 				languages: profile?.languages ?? [],
+				inDivision: approved.some((item) => item.division?._id.toString() === divisionId),
+				approvedDivisions: approved.map((item) => item.division?.name).filter(Boolean),
 				isAssigned: id === currentGuide,
 				isAvailable: !conflicts.has(id),
 				conflictWith: conflicts.get(id) ?? null,
 			};
 		})
-		.sort((a, b) => Number(b.isAvailable) - Number(a.isAvailable) || b.experienceYears - a.experienceYears);
+		.sort(
+			(a, b) =>
+				Number(b.isAvailable) - Number(a.isAvailable) ||
+				Number(b.inDivision) - Number(a.inDivision) ||
+				b.experienceYears - a.experienceYears,
+		);
 
 	return { currentGuide, guides: data };
 };
@@ -623,20 +635,14 @@ const assignGuide = async (bookingId: string, guideId: string | null) => {
 	const booking = await loadAssignableBooking(bookingId);
 
 	if (guideId) {
-		const [guide, approved] = await Promise.all([
-			User.findOne({ _id: guideId, role: Role.GUIDE, isActive: IsActive.ACTIVE }).where("isDeleted").ne(true).select("_id").lean(),
-			GuideApplication.exists({
-				user: guideId,
-				division: booking.tour.division,
-				status: GUIDE_APPLICATION_STATUS.APPROVED,
-			}),
-		]);
+		const guide = await User.findOne({ _id: guideId, role: Role.GUIDE, isActive: IsActive.ACTIVE })
+			.where("isDeleted")
+			.ne(true)
+			.select("_id")
+			.lean();
 
 		if (!guide) {
 			throw new AppError(httpStatus.BAD_REQUEST, "This user is not an active guide.");
-		}
-		if (!approved) {
-			throw new AppError(httpStatus.BAD_REQUEST, "This guide is not approved for this tour's division.");
 		}
 
 		const conflicts = await findGuideConflicts([guide._id], booking, booking.tour);
