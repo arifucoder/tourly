@@ -1,5 +1,5 @@
 import httpStatus from "http-status-codes";
-import { isValidObjectId } from "mongoose";
+import { isValidObjectId, type Types } from "mongoose";
 import { uploadBufferToCloudinary } from "../../config/cloudinary.config";
 import AppError from "../../errorHelpers/AppError";
 import { getTransactionId } from "../../utils/getTransactionId";
@@ -7,9 +7,10 @@ import { generatePdf, type IInvoiceData } from "../../utils/invoice";
 import { sendEmail } from "../../utils/sendEmail";
 import { BOOKING_STATUS } from "../booking/booking.interface";
 import { Booking } from "../booking/booking.model";
+import type { ISSLValidationResponse } from "../sslCommerz/sslCommerz.interface";
 import { SSLService } from "../sslCommerz/sslCommerz.service";
 import type { ITour } from "../tour/tour.interface";
-import type { IUser } from "../user/user.interface";
+import { Role, type IUser } from "../user/user.interface";
 import { PAYMENT_STATUS } from "./payment.interface";
 import { Payment } from "./payment.model";
 
@@ -73,148 +74,142 @@ const initPayment = async (bookingId: string, userId: string) => {
 		await session.endSession();
 	}
 };
-const successPayment = async (query: Record<string, string>) => {
-	const session = await Booking.startSession();
-	session.startTransaction();
+const isPaymentVerified = (gateway: ISSLValidationResponse, transactionId: string, amount: number) =>
+	(gateway.status === "VALID" || gateway.status === "VALIDATED") &&
+	gateway.tran_id === transactionId &&
+	gateway.currency === "BDT" &&
+	Math.abs(Number(gateway.amount) - amount) < 0.01;
 
-	try {
-		const updatedPayment = await Payment.findOneAndUpdate(
-			{ transactionId: query.transactionId },
-			{
-				status: PAYMENT_STATUS.PAID,
-			},
-			{ new: true, runValidators: true, session: session },
-		);
+const sendInvoice = async (paymentId: string) => {
+	const payment = await Payment.findById(paymentId);
+	const booking = await Booking.findById(payment?.booking)
+		.populate<{ tour: ITour }>("tour", "title")
+		.populate<{ user: IUser }>("user", "name email");
 
-		if (!updatedPayment) {
-			throw new AppError(401, "Payment not found");
-		}
+	if (!payment || !booking) return;
 
-		const updatedBooking = await Booking.findByIdAndUpdate(
-			updatedPayment?.booking,
-			{ status: BOOKING_STATUS.COMPLETE },
-			{ new: true, runValidators: true, session },
-		)
-			.populate("tour", "title")
-			.populate("user", "name email");
+	const invoiceData: IInvoiceData = {
+		bookingDate: booking.createdAt as Date,
+		guestCount: booking.guestCount,
+		totalAmount: payment.amount,
+		tourTitle: booking.tour.title,
+		transactionId: payment.transactionId,
+		userName: booking.user.name,
+	};
 
-		if (!updatedBooking) {
-			throw new AppError(401, "Booking not found");
-		}
+	const pdfBuffer = await generatePdf(invoiceData);
+	const uploaded = await uploadBufferToCloudinary(pdfBuffer, "invoice");
 
-		const invoiceData: IInvoiceData = {
-			bookingDate: updatedBooking.createdAt as Date,
-			guestCount: updatedBooking.guestCount,
-			totalAmount: updatedPayment.amount,
-			tourTitle: (updatedBooking.tour as unknown as ITour).title,
-			transactionId: updatedPayment.transactionId,
-			userName: (updatedBooking.user as unknown as IUser).name,
-		};
-
-		const pdfBuffer = await generatePdf(invoiceData);
-
-		const cloudinaryResult = await uploadBufferToCloudinary(pdfBuffer, "invoice");
-
-		if (!cloudinaryResult) {
-			throw new AppError(401, "Error uploading pdf");
-		}
-
-		await Payment.findByIdAndUpdate(
-			updatedPayment._id,
-			{ invoiceUrl: cloudinaryResult.secure_url },
-			{ runValidators: true, session },
-		);
-
-		await sendEmail({
-			to: (updatedBooking.user as unknown as IUser).email,
-			subject: "Your Booking Invoice",
-			templateName: "invoice",
-			templateData: invoiceData,
-			attachments: [
-				{
-					filename: "invoice.pdf",
-					content: pdfBuffer,
-					contentType: "application/pdf",
-				},
-			],
-		});
-
-		await session.commitTransaction();
-		session.endSession();
-		return { success: true, message: "Payment Completed Successfully" };
-	} catch (error) {
-		await session.abortTransaction();
-		session.endSession();
-
-		throw error;
+	if (uploaded) {
+		await Payment.updateOne({ _id: payment._id }, { invoiceUrl: uploaded.secure_url });
 	}
-};
-const failPayment = async (query: Record<string, string>) => {
-	const session = await Booking.startSession();
-	session.startTransaction();
 
-	try {
-		const updatedPayment = await Payment.findOneAndUpdate(
-			{ transactionId: query.transactionId },
-			{
-				status: PAYMENT_STATUS.FAILED,
-			},
-			{ new: true, runValidators: true, session: session },
-		);
-
-		await Booking.findByIdAndUpdate(
-			updatedPayment?.booking,
-			{ status: BOOKING_STATUS.FAILED },
-			{ runValidators: true, session },
-		);
-
-		await session.commitTransaction();
-		session.endSession();
-		return { success: false, message: "Payment Failed" };
-	} catch (error) {
-		await session.abortTransaction();
-		session.endSession();
-		throw error;
-	}
-};
-const cancelPayment = async (query: Record<string, string>) => {
-	const session = await Booking.startSession();
-	session.startTransaction();
-
-	try {
-		const updatedPayment = await Payment.findOneAndUpdate(
-			{ transactionId: query.transactionId },
-			{
-				status: PAYMENT_STATUS.CANCELLED,
-			},
-			{ runValidators: true, session: session },
-		);
-
-		await Booking.findByIdAndUpdate(
-			updatedPayment?.booking,
-			{ status: BOOKING_STATUS.CANCEL },
-			{ runValidators: true, session },
-		);
-
-		await session.commitTransaction();
-		session.endSession();
-		return { success: false, message: "Payment Cancelled" };
-	} catch (error) {
-		await session.abortTransaction();
-		session.endSession();
-		throw error;
-	}
+	await sendEmail({
+		to: booking.user.email,
+		subject: "Your Booking Invoice",
+		templateName: "invoice",
+		templateData: invoiceData,
+		attachments: [{ filename: "invoice.pdf", content: pdfBuffer, contentType: "application/pdf" }],
+	});
 };
 
-const getInvoiceDownloadUrl = async (paymentId: string) => {
-	const payment = await Payment.findById(paymentId).select("invoiceUrl");
+const confirmPayment = async ({ transactionId, valId }: { transactionId?: string; valId?: string }) => {
+	if (!transactionId || !valId) {
+		throw new AppError(httpStatus.BAD_REQUEST, "Missing payment reference.");
+	}
+
+	const payment = await Payment.findOne({ transactionId });
 
 	if (!payment) {
-		throw new AppError(401, "Payment not found");
+		throw new AppError(httpStatus.NOT_FOUND, "Payment not found.");
+	}
+	if (payment.status === PAYMENT_STATUS.PAID) {
+		return { transactionId, amount: payment.amount, alreadyPaid: true };
+	}
+	if (payment.status !== PAYMENT_STATUS.UNPAID) {
+		throw new AppError(httpStatus.BAD_REQUEST, "This payment is no longer active.");
 	}
 
+	const gateway = await SSLService.validatePayment(valId);
+
+	if (!isPaymentVerified(gateway, transactionId, payment.amount)) {
+		throw new AppError(httpStatus.BAD_REQUEST, "Payment could not be verified.");
+	}
+
+	const session = await Booking.startSession();
+	session.startTransaction();
+
+	try {
+		const updated = await Payment.updateOne(
+			{ _id: payment._id, status: PAYMENT_STATUS.UNPAID },
+			{ status: PAYMENT_STATUS.PAID, paymentGatewayData: gateway },
+			{ session },
+		);
+
+		if (updated.modifiedCount === 0) {
+			await session.abortTransaction();
+			return { transactionId, amount: payment.amount, alreadyPaid: true };
+		}
+
+		await Booking.updateOne({ _id: payment.booking }, { status: BOOKING_STATUS.COMPLETE }, { session });
+		await session.commitTransaction();
+	} catch (error) {
+		await session.abortTransaction();
+		throw error;
+	} finally {
+		await session.endSession();
+	}
+
+	sendInvoice(payment._id.toString()).catch((error: unknown) => {
+		console.error("Invoice delivery failed", payment.transactionId, error);
+	});
+
+	return { transactionId, amount: payment.amount, alreadyPaid: false };
+};
+
+const closeUnpaidPayment = async (
+	transactionId: string | undefined,
+	paymentStatus: PAYMENT_STATUS.FAILED | PAYMENT_STATUS.CANCELLED,
+	bookingStatus: BOOKING_STATUS.FAILED | BOOKING_STATUS.CANCEL,
+) => {
+	if (!transactionId) return;
+
+	const payment = await Payment.findOneAndUpdate(
+		{ transactionId, status: PAYMENT_STATUS.UNPAID },
+		{ status: paymentStatus },
+		{ new: true },
+	);
+
+	if (payment) {
+		await Booking.updateOne({ _id: payment.booking, status: BOOKING_STATUS.PENDING }, { status: bookingStatus });
+	}
+};
+
+const failPayment = (transactionId?: string) =>
+	closeUnpaidPayment(transactionId, PAYMENT_STATUS.FAILED, BOOKING_STATUS.FAILED);
+
+const cancelPayment = (transactionId?: string) =>
+	closeUnpaidPayment(transactionId, PAYMENT_STATUS.CANCELLED, BOOKING_STATUS.CANCEL);
+
+const getInvoiceDownloadUrl = async (paymentId: string, authUser: { userId: string; role: Role }) => {
+	if (!isValidObjectId(paymentId)) {
+		throw new AppError(httpStatus.BAD_REQUEST, "Invalid payment id.");
+	}
+
+	const payment = await Payment.findById(paymentId)
+		.select("invoiceUrl booking")
+		.populate<{ booking: { user: Types.ObjectId } | null }>("booking", "user");
+
+	if (!payment) {
+		throw new AppError(httpStatus.NOT_FOUND, "Payment not found.");
+	}
+
+	const isAdmin = authUser.role === Role.ADMIN || authUser.role === Role.SUPER_ADMIN;
+	if (!isAdmin && payment.booking?.user.toString() !== authUser.userId) {
+		throw new AppError(httpStatus.FORBIDDEN, "You are not allowed to view this invoice.");
+	}
 	if (!payment.invoiceUrl) {
-		throw new AppError(401, "No invoice found");
+		throw new AppError(httpStatus.NOT_FOUND, "Invoice is not ready yet.");
 	}
 
 	return payment.invoiceUrl;
@@ -222,7 +217,7 @@ const getInvoiceDownloadUrl = async (paymentId: string) => {
 
 export const PaymentService = {
 	initPayment,
-	successPayment,
+	confirmPayment,
 	failPayment,
 	cancelPayment,
 	getInvoiceDownloadUrl,

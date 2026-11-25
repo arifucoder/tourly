@@ -1,10 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import axios from "axios";
 import httpStatus from "http-status-codes";
 import { envVars } from "../../config/env";
 import AppError from "../../errorHelpers/AppError";
-import { Payment } from "../payment/payment.model";
-import { type ISSLCommerz } from "./sslCommerz.interface";
+import type { ISSLCommerz, ISSLValidationResponse } from "./sslCommerz.interface";
 
 const sslPaymentInit = async (payload: ISSLCommerz) => {
 	try {
@@ -41,40 +39,43 @@ const sslPaymentInit = async (payload: ISSLCommerz) => {
 			ship_country: "N/A",
 		};
 
-		const response = await axios({
-			method: "POST",
-			url: envVars.SSL_PAYMENT_API,
-			data: data,
-			headers: { "Content-Type": "application/x-www-form-urlencoded" },
-		});
+		const body = new URLSearchParams(
+			Object.entries(data).map(([key, value]) => [key, String(value)]),
+		);
 
-		if (response.data?.status !== "SUCCESS" || !response.data?.GatewayPageURL) {
-			throw new Error(response.data?.failedreason || "Could not start payment.");
+		const response = await fetch(envVars.SSL_PAYMENT_API, {
+			method: "POST",
+			body,
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			signal: AbortSignal.timeout(15_000),
+		});
+		const result = (await response.json()) as { status?: string; GatewayPageURL?: string; failedreason?: string };
+
+		if (result.status !== "SUCCESS" || !result.GatewayPageURL) {
+			throw new Error(result.failedreason || "Could not start payment.");
 		}
 
-		return response.data.GatewayPageURL as string;
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		return result.GatewayPageURL;
 	} catch (error: any) {
 		console.log("Payment Error Occurred", error);
 		throw new AppError(httpStatus.BAD_REQUEST, error.message);
 	}
 };
 
-const validatePayment = async (payload: any) => {
-	try {
-		const response = await axios({
-			method: "GET",
-			url: `${envVars.SSL_VALIDATION_API}?val_id=${payload.val_id}&store_id=${envVars.SSL_STORE_ID}&store_passwd=${envVars.SSL_STORE_PASS}`,
-		});
+const validatePayment = async (valId: string): Promise<ISSLValidationResponse> => {
+	const url = new URL(envVars.SSL_VALIDATION_API);
+	url.search = new URLSearchParams({
+		val_id: valId,
+		store_id: envVars.SSL_STORE_ID,
+		store_passwd: envVars.SSL_STORE_PASS,
+		format: "json",
+	}).toString();
 
-		await Payment.updateOne(
-			{ transactionId: payload.tran_id },
-			{ paymentGatewayData: response.data },
-			{ runValidators: true },
-		);
-	} catch (error: any) {
-		console.log(error);
-		throw new AppError(401, `Payment Validation Error, ${error.message}`);
+	try {
+		const response = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+		return (await response.json()) as ISSLValidationResponse;
+	} catch {
+		throw new AppError(httpStatus.BAD_GATEWAY, "Could not reach the payment gateway to verify this payment.");
 	}
 };
 
