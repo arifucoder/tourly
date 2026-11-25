@@ -2,12 +2,11 @@ import TourCard from "@/components/modules/Tour/TourCard";
 import TourFilters, {
 	countActiveFilters,
 	emptyTourFilters,
-	tourInputCls,
-	tourPrimaryBtn,
 	type TTourFilters,
 } from "@/components/modules/Tour/TourFilters";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { inputCls, outlineBtn, primaryBtn, squareBtn } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import { useGetTourFilterOptionsQuery, useGetToursQuery } from "@/redux/features/Tour/tour.api";
 import { AlertCircle, ChevronLeft, ChevronRight, RefreshCw, Search, SearchX } from "lucide-react";
@@ -23,12 +22,6 @@ const SORT_OPTIONS = [
 ];
 
 const gridCls = "grid grid-cols-[repeat(auto-fill,minmax(min(250px,100%),1fr))] gap-6";
-
-const outlineBtn =
-	"inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border-[1.5px] border-primary bg-transparent px-5.5 text-[14.5px] font-medium whitespace-nowrap text-primary-text transition-colors hover:bg-accent";
-
-const squareBtn =
-	"inline-flex h-11 min-w-11 items-center justify-center rounded-[10px] border-[1.5px] border-border bg-card px-2.5 font-medium text-foreground transition-colors hover:border-primary/50 disabled:pointer-events-none disabled:opacity-50";
 
 const squareActive =
 	"border-primary bg-primary text-primary-foreground shadow-[0_10px_22px_rgb(255_123_41/0.25)] hover:border-primary";
@@ -150,10 +143,10 @@ export default function Tours() {
 								value={searchInput}
 								onChange={(e) => setSearchInput(e.target.value)}
 								placeholder="Search by tour name or location…"
-								className={cn(tourInputCls, "border-transparent pl-10.5")}
+								className={cn(inputCls, "border-transparent pl-10.5")}
 							/>
 						</div>
-						<button type="submit" className={tourPrimaryBtn}>
+						<button type="submit" className={primaryBtn}>
 							Search
 						</button>
 					</form>
@@ -224,7 +217,7 @@ export default function Tours() {
 									setSort(e.target.value);
 									setPage(1);
 								}}
-								className={cn(tourInputCls, "w-auto min-w-47.5 flex-1")}
+								className={cn(inputCls, "w-auto min-w-47.5 flex-1")}
 							>
 								{SORT_OPTIONS.map((o) => (
 									<option key={o.value} value={o.value}>

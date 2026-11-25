@@ -1,3 +1,4 @@
+import { inputCls, primaryBtn } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import type { ITourFilterOptions } from "@/types";
 
@@ -14,12 +15,6 @@ export const emptyTourFilters: TTourFilters = { divisions: [], tourType: "", loc
 export const countActiveFilters = (f: TTourFilters) =>
 	f.divisions.length + Number(Boolean(f.tourType)) + Number(Boolean(f.location)) +
 	Number(f.minPrice !== undefined || f.maxPrice !== undefined);
-
-export const tourInputCls =
-	"block min-h-11.5 w-full rounded-[10px] border-[1.5px] border-border bg-card px-3.5 py-2.5 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
-
-export const tourPrimaryBtn =
-	"inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border-[1.5px] border-primary bg-primary px-5.5 text-[14.5px] font-medium whitespace-nowrap text-primary-foreground shadow-[0_10px_22px_rgb(255_123_41/0.25)] transition-colors hover:bg-primary-hover disabled:pointer-events-none disabled:opacity-50";
 
 const thumb =
 	"[&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:size-5 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-[3px] [&::-webkit-slider-thumb]:border-primary [&::-webkit-slider-thumb]:bg-card [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:box-border [&::-moz-range-thumb]:size-5 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-[3px] [&::-moz-range-thumb]:border-primary [&::-moz-range-thumb]:bg-card";
@@ -76,7 +71,7 @@ function PriceRange({ bounds, min, max, onChange, idPrefix }: PriceRangeProps) {
 					value={min.toLocaleString("en-IN")}
 					onChange={(e) => onChange(toNumber(e.target.value), max)}
 					onBlur={() => onChange(Math.min(clamp(min), max), max)}
-					className={tourInputCls}
+					className={inputCls}
 				/>
 				<input
 					id={`${idPrefix}-max-price`}
@@ -85,7 +80,7 @@ function PriceRange({ bounds, min, max, onChange, idPrefix }: PriceRangeProps) {
 					value={max.toLocaleString("en-IN")}
 					onChange={(e) => onChange(min, toNumber(e.target.value))}
 					onBlur={() => onChange(min, Math.max(clamp(max), min))}
-					className={tourInputCls}
+					className={inputCls}
 				/>
 			</div>
 		</fieldset>
@@ -188,7 +183,7 @@ export default function TourFilters({ options, value, onChange, onApply, onReset
 						id={`${idPrefix}-location`}
 						value={value.location}
 						onChange={(e) => onChange({ ...value, location: e.target.value })}
-						className={tourInputCls}
+						className={inputCls}
 					>
 						<option value="">Any location</option>
 						{locations.map((l) => (
@@ -210,7 +205,7 @@ export default function TourFilters({ options, value, onChange, onApply, onReset
 				/>
 			)}
 
-			<button type="button" onClick={onApply} className={tourPrimaryBtn}>
+			<button type="button" onClick={onApply} className={primaryBtn}>
 				Apply filters
 			</button>
 		</div>
