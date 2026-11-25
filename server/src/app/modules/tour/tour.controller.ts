@@ -47,7 +47,7 @@ const updateTour = catchAsync(async (req: Request, res: Response) => {
 
 const deleteTour = catchAsync(async (req: Request, res: Response) => {
 	const { id } = req.params;
-	const result = await TourService.deleteTour(id);
+	const result = await TourService.deleteTour(id as string);
 	sendResponse(res, {
 		statusCode: 200,
 		success: true,
@@ -55,6 +55,17 @@ const deleteTour = catchAsync(async (req: Request, res: Response) => {
 		data: result,
 	});
 });
+const getTourFilterOptions = catchAsync(async (req: Request, res: Response) => {
+	const result = await TourService.getTourFilterOptions();
+	res.set("Cache-Control", "public, max-age=60");
+	sendResponse(res, {
+		statusCode: 200,
+		success: true,
+		message: "Tour filter options retrieved",
+		data: result,
+	});
+});
+
 const getAllTourTypes = catchAsync(async (req: Request, res: Response) => {
 	const result = await TourService.getAllTourTypes();
 	sendResponse(res, {
@@ -99,7 +110,7 @@ const updateTourType = catchAsync(async (req: Request, res: Response) => {
 });
 const deleteTourType = catchAsync(async (req: Request, res: Response) => {
 	const { id } = req.params;
-	const result = await TourService.deleteTourType(id);
+	const result = await TourService.deleteTourType(id as string);
 	sendResponse(res, {
 		statusCode: 200,
 		success: true,
@@ -109,6 +120,7 @@ const deleteTourType = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const TourController = {
+	getTourFilterOptions,
 	createTour,
 	createTourType,
 	getAllTourTypes,

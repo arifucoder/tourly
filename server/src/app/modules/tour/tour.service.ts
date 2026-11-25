@@ -1,10 +1,17 @@
 import { deleteImageFromCLoudinary } from "../../config/cloudinary.config";
 import AppError from "../../errorHelpers/AppError";
 import { QueryBuilder } from "../../utils/QueryBuilder";
-import { tourSearchableFields } from "./tour.constant";
+import {
+	tourFilterableFields,
+	tourSearchableFields,
+	tourSelectableFields,
+	tourSortableFields,
+} from "./tour.constant";
 import type { ITour, ITourType } from "./tour.interface";
+import { Division } from "../division/division.model";
 import { Tour, TourType } from "./tour.model";
-import httpStatus from "http-status-codes"
+import httpStatus from "http-status-codes";
+import type { PipelineStage } from "mongoose";
 
 const createTour = async (payload: ITour) => {
 	const existingTour = await Tour.findOne({ title: payload.title });
@@ -19,15 +26,57 @@ const createTour = async (payload: ITour) => {
 
 const getAllTours = async (query: Record<string, string>) => {
 	const queryBuilder = new QueryBuilder(
-		Tour.find().populate("division", "name slug").populate("tourType", "name"),
+		Tour.find().populate("division", "name slug").populate("tourType", "name").lean(),
 		query,
+		{
+			searchableFields: tourSearchableFields,
+			filterableFields: tourFilterableFields,
+			sortableFields: tourSortableFields,
+			selectableFields: tourSelectableFields,
+		},
 	);
 
-	const tours = queryBuilder.search(tourSearchableFields).filter().sort().fields().paginate();
+	const tours = queryBuilder.search().filter().sort().fields().paginate();
 
 	const [data, meta] = await Promise.all([tours.build(), queryBuilder.getMeta()]);
 
 	return { data, meta };
+};
+
+interface IFilterOption {
+	_id: string;
+	name: string;
+	count: number;
+}
+
+const getTourFilterOptions = async () => {
+	const countBy = (field: "division" | "tourType", from: string): PipelineStage.FacetPipelineStage[] => [
+		{ $group: { _id: `$${field}`, count: { $sum: 1 } } },
+		{ $lookup: { from, localField: "_id", foreignField: "_id", as: "ref", pipeline: [{ $project: { name: 1 } }] } },
+		{ $unwind: "$ref" },
+		{ $project: { _id: 1, count: 1, name: "$ref.name" } },
+		{ $sort: { name: 1 } },
+	];
+
+	const [result] = await Tour.aggregate<{
+		divisions: IFilterOption[];
+		tourTypes: IFilterOption[];
+		total: { count: number }[];
+	}>([
+		{
+			$facet: {
+				divisions: countBy("division", Division.collection.name),
+				tourTypes: countBy("tourType", TourType.collection.name),
+				total: [{ $count: "count" }],
+			},
+		},
+	]);
+
+	return {
+		divisions: result?.divisions ?? [],
+		tourTypes: result?.tourTypes ?? [],
+		totalTours: result?.total[0]?.count ?? 0,
+	};
 };
 
 const getSingleTour = async (slug: string) => {
@@ -122,6 +171,7 @@ const deleteTourType = async (id: string) => {
 };
 
 export const TourService = {
+	getTourFilterOptions,
 	createTour,
 	createTourType,
 	deleteTourType,

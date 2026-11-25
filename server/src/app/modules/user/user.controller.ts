@@ -20,7 +20,7 @@ const createUser = catchAsync(async (req: Request, res: Response, next: NextFunc
 const updateUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
 	const userId = req.params.id;
 
-	const verifiedToken = req.user;
+	const verifiedToken = req.user as JwtPayload;
 
 	const payload = req.body;
 	const user = await UserServices.updateUser(userId as string, payload, verifiedToken);
@@ -60,7 +60,7 @@ const getMe = catchAsync(async (req: Request, res: Response, next: NextFunction)
 
 const getSingleUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
 	const id = req.params.id;
-	const result = await UserServices.getSingleUser(id);
+	const result = await UserServices.getSingleUser(id as string);
 	sendResponse(res, {
 		success: true,
 		statusCode: httpStatus.CREATED,

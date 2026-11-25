@@ -9,6 +9,7 @@ import { createTourTypeZodSchema, createTourZodSchema, updateTourZodSchema } fro
 const router = express.Router();
 
 router.get("/tour-types", TourController.getAllTourTypes);
+router.get("/filter-options", TourController.getTourFilterOptions);
 
 router.post(
 	"/create-tour-type",

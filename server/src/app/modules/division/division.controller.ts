@@ -46,7 +46,7 @@ const updateDivision = catchAsync(async (req: Request, res: Response) => {
 		...req.body,
 		thumbnail: req.file?.path,
 	};
-	const result = await DivisionService.updateDivision(id, payload);
+	const result = await DivisionService.updateDivision(id as string, payload);
 	sendResponse(res, {
 		statusCode: 200,
 		success: true,
@@ -56,7 +56,7 @@ const updateDivision = catchAsync(async (req: Request, res: Response) => {
 });
 
 const deleteDivision = catchAsync(async (req: Request, res: Response) => {
-	const result = await DivisionService.deleteDivision(req.params.id);
+	const result = await DivisionService.deleteDivision(req.params.id as string);
 	sendResponse(res, {
 		statusCode: 200,
 		success: true,

@@ -13,13 +13,10 @@ const createDivision = async (payload: IDivision) => {
 };
 
 const getAllDivisions = async () => {
-	const divisions = await Division.find({});
-	const totalDivisions = await Division.countDocuments();
+	const divisions = await Division.find({}).sort("name").lean();
 	return {
 		data: divisions,
-		meta: {
-			total: totalDivisions,
-		},
+		meta: { page: 1, limit: divisions.length, total: divisions.length, totalPage: 1 },
 	};
 };
 const getSingleDivision = async (slug: string) => {

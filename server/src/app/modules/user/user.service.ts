@@ -4,7 +4,12 @@ import type { JwtPayload } from "jsonwebtoken";
 import { envVars } from "../../config/env";
 import AppError from "../../errorHelpers/AppError";
 import { QueryBuilder } from "../../utils/QueryBuilder";
-import { userSearchableFields } from "./user.constant";
+import {
+	userFilterableFields,
+	userSearchableFields,
+	userSelectableFields,
+	userSortableFields,
+} from "./user.constant";
 import { Role, type IAuthProvider, type IUser } from "./user.interface";
 import { User } from "./user.model";
 
@@ -70,9 +75,14 @@ const updateUser = async (userId: string, payload: Partial<IUser>, decodedToken:
 };
 
 const getAllUsers = async (query: Record<string, string>) => {
-	const queryBuilder = new QueryBuilder(User.find(), query);
+	const queryBuilder = new QueryBuilder(User.find().where("isDeleted").ne(true).lean(), query, {
+		searchableFields: userSearchableFields,
+		filterableFields: userFilterableFields,
+		sortableFields: userSortableFields,
+		selectableFields: userSelectableFields,
+	});
 
-	const users = queryBuilder.search(userSearchableFields).filter().sort().fields().paginate();
+	const users = queryBuilder.search().filter().sort().fields().paginate();
 	const [data, meta] = await Promise.all([users.build(), queryBuilder.getMeta()]);
 	return {
 		data,
@@ -81,14 +91,14 @@ const getAllUsers = async (query: Record<string, string>) => {
 };
 
 const getMe = async (userId: string) => {
-	const user = await User.findById(userId).select("-password");
+	const user = await User.findById(userId);
 	return {
 		data: user,
 	};
 };
 
 const getSingleUser = async (id: string) => {
-	const user = await User.findById(id).select("-password");
+	const user = await User.findById(id);
 	return {
 		data: user,
 	};

@@ -92,4 +92,9 @@ tourSchema.pre("findOneAndUpdate", async function () {
 	}
 });
 
+tourSchema.index({ division: 1, createdAt: -1 });
+tourSchema.index({ tourType: 1, createdAt: -1 });
+tourSchema.index({ costFrom: 1 });
+tourSchema.index({ startDate: 1 });
+
 export const Tour = model<ITour>("Tour", tourSchema);

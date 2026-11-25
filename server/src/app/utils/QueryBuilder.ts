@@ -1,58 +1,108 @@
-import { Query } from "mongoose";
-import { excludeField } from "../constants";
+import type { Query } from "mongoose";
+
+interface IQueryBuilderOptions {
+	searchableFields?: string[];
+	filterableFields?: string[];
+	sortableFields?: string[];
+	selectableFields?: string[];
+	defaultSort?: string;
+	defaultLimit?: number;
+	maxLimit?: number;
+}
+
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const toPositiveInt = (value: unknown, fallback: number) => {
+	const parsed = Number.parseInt(String(value), 10);
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
 
 export class QueryBuilder<T> {
 	public modelQuery: Query<T[], T>;
-	public readonly query: Record<string, string>;
+	public readonly query: Record<string, unknown>;
+	private readonly options: Required<IQueryBuilderOptions>;
 
-	constructor(modelQuery: Query<T[], T>, query: Record<string, string>) {
+	constructor(modelQuery: Query<T[], T>, query: Record<string, unknown>, options: IQueryBuilderOptions = {}) {
 		this.modelQuery = modelQuery;
 		this.query = query;
+		this.options = {
+			searchableFields: [],
+			filterableFields: [],
+			sortableFields: ["createdAt"],
+			selectableFields: [],
+			defaultSort: "-createdAt",
+			defaultLimit: 10,
+			maxLimit: 100,
+			...options,
+		};
 	}
 
-	filter(): this {
-		const filter = { ...this.query };
+	private get page() {
+		return toPositiveInt(this.query.page, 1);
+	}
 
-		for (const field of excludeField) {
-			// eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-			delete filter[field];
-		}
+	private get limit() {
+		return Math.min(toPositiveInt(this.query.limit, this.options.defaultLimit), this.options.maxLimit);
+	}
 
-		this.modelQuery = this.modelQuery.find(filter);
+	search(): this {
+		const term = typeof this.query.searchTerm === "string" ? this.query.searchTerm.trim().slice(0, 100) : "";
+
+		if (!term || this.options.searchableFields.length === 0) return this;
+
+		const regex = { $regex: escapeRegex(term), $options: "i" };
+		this.modelQuery = this.modelQuery.find({
+			$or: this.options.searchableFields.map((field) => ({ [field]: regex })),
+		} as never);
 
 		return this;
 	}
 
-	search(searchableField: string[]): this {
-		const searchTerm = this.query.searchTerm || "";
-		const searchQuery = {
-			$or: searchableField.map((field) => ({ [field]: { $regex: searchTerm, $options: "i" } })),
-		};
-		this.modelQuery = this.modelQuery.find(searchQuery);
+	filter(): this {
+		const conditions: Record<string, string> = {};
+
+		for (const field of this.options.filterableFields) {
+			const value = this.query[field];
+			if (typeof value === "string" && value.trim() !== "") {
+				conditions[field] = value.trim();
+			}
+		}
+
+		if (Object.keys(conditions).length > 0) {
+			this.modelQuery = this.modelQuery.find(conditions as never);
+		}
+
 		return this;
 	}
 
 	sort(): this {
-		const sort = this.query.sort || "-createdAt";
+		const requested = typeof this.query.sort === "string" ? this.query.sort : "";
+		const safe = requested
+			.split(",")
+			.map((part) => part.trim())
+			.filter((part) => this.options.sortableFields.includes(part.replace(/^-/, "")));
 
-		this.modelQuery = this.modelQuery.sort(sort);
+		this.modelQuery = this.modelQuery.sort(safe.length > 0 ? safe.join(" ") : this.options.defaultSort);
 
 		return this;
 	}
+
 	fields(): this {
-		const fields = this.query.fields?.split(",").join(" ") || "";
+		const requested = typeof this.query.fields === "string" ? this.query.fields : "";
+		const safe = requested
+			.split(",")
+			.map((field) => field.trim())
+			.filter((field) => this.options.selectableFields.includes(field));
 
-		this.modelQuery = this.modelQuery.select(fields);
+		if (safe.length > 0) {
+			this.modelQuery = this.modelQuery.select(safe.join(" "));
+		}
 
 		return this;
 	}
+
 	paginate(): this {
-		const page = Number(this.query.page) || 1;
-		const limit = Number(this.query.limit) || 10;
-		const skip = (page - 1) * limit;
-
-		this.modelQuery = this.modelQuery.skip(skip).limit(limit);
-
+		this.modelQuery = this.modelQuery.skip((this.page - 1) * this.limit).limit(this.limit);
 		return this;
 	}
 
@@ -61,13 +111,9 @@ export class QueryBuilder<T> {
 	}
 
 	async getMeta() {
-		const totalDocuments = await this.modelQuery.model.countDocuments();
+		const total = await this.modelQuery.model.countDocuments(this.modelQuery.getFilter());
+		const limit = this.limit;
 
-		const page = Number(this.query.page) || 1;
-		const limit = Number(this.query.limit) || 10;
-
-		const totalPage = Math.ceil(totalDocuments / limit);
-
-		return { page, limit, total: totalDocuments, totalPage };
+		return { page: this.page, limit, total, totalPage: Math.ceil(total / limit) };
 	}
 }
