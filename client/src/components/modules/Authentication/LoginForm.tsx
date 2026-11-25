@@ -45,8 +45,8 @@ export default function LoginForm() {
 		} catch (err) {
 			const error = err as TApiError;
 
-			if (error.status === 401 && error.data?.message?.toLowerCase().includes("verif")) {
-				toast.error("Your account is not verified");
+			if (error.status === 403 && error.data?.message?.toLowerCase().includes("verif")) {
+				toast.info("Verify your email to continue", { description: "We're sending a 6-digit code to your inbox." });
 				navigate("/verify", { state: data.email });
 				return;
 			}
