@@ -6,13 +6,16 @@ import { PAYMENT_STATUS } from "../payment/payment.interface";
 import { Payment } from "../payment/payment.model";
 import { SSLService } from "../sslCommerz/sslCommerz.service";
 import { Tour } from "../tour/tour.model";
-import { Role } from "../user/user.interface";
+import { GUIDE_APPLICATION_STATUS } from "../guideApplication/guideApplication.interface";
+import { GuideApplication } from "../guideApplication/guideApplication.model";
+import { IsActive, Role } from "../user/user.interface";
 import { User } from "../user/user.model";
 import { ADMIN_STATUS_TRANSITIONS } from "./booking.constant";
 import { BOOKING_STATUS } from "./booking.interface";
 import { Booking } from "./booking.model";
 import type {
 	TAllBookingsQuery,
+	TAssignedBookingsQuery,
 	TBookingSummaryQuery,
 	TCreateBookingPayload,
 	TMyBookingsQuery,
@@ -167,6 +170,8 @@ const getUserBookingSummary = async (userId: string) => {
 	return { counts, upcomingTrips, completedTrips, pendingAmount, totalSpent };
 };
 
+const GUIDE_CONTACT_WINDOW_MS = 48 * 60 * 60 * 1000;
+
 const getBookingById = async (bookingId: string, authUser: IAuthUser) => {
 	assertObjectId(bookingId);
 
@@ -180,7 +185,9 @@ const getBookingById = async (bookingId: string, authUser: IAuthUser) => {
 			],
 		})
 		.populate("user", "name email phone address")
-		.populate("payment", PAYMENT_FIELDS);
+		.populate("guide", "name email phone picture")
+		.populate("payment", PAYMENT_FIELDS)
+		.lean();
 
 	if (!booking) {
 		throw new AppError(httpStatus.NOT_FOUND, "Booking not found.");
@@ -188,9 +195,21 @@ const getBookingById = async (bookingId: string, authUser: IAuthUser) => {
 
 	const isAdmin = authUser.role === Role.ADMIN || authUser.role === Role.SUPER_ADMIN;
 	const ownerId = (booking.user as unknown as { _id: Types.ObjectId })._id.toString();
+	const guide = booking.guide as unknown as { _id: Types.ObjectId; phone?: string; email?: string } | null;
+	const isAssignedGuide = guide?._id.toString() === authUser.userId;
 
-	if (!isAdmin && ownerId !== authUser.userId) {
+	if (!isAdmin && !isAssignedGuide && ownerId !== authUser.userId) {
 		throw new AppError(httpStatus.FORBIDDEN, "You are not allowed to view this booking.");
+	}
+
+	if (guide && !isAdmin && !isAssignedGuide) {
+		const startDate = (booking.tour as unknown as { startDate?: Date } | null)?.startDate;
+		const contactShared = !startDate || startDate.getTime() - Date.now() <= GUIDE_CONTACT_WINDOW_MS;
+		if (!contactShared) {
+			delete guide.phone;
+			delete guide.email;
+		}
+		Object.assign(guide, { contactShared });
 	}
 
 	return booking;
@@ -234,6 +253,16 @@ const getAllBookings = async (query: TAllBookingsQuery) => {
 			},
 		},
 		{ $unwind: { path: "$payment", preserveNullAndEmptyArrays: true } },
+		{
+			$lookup: {
+				from: User.collection.name,
+				localField: "guide",
+				foreignField: "_id",
+				as: "guide",
+				pipeline: [{ $project: { name: 1 } }],
+			},
+		},
+		{ $unwind: { path: "$guide", preserveNullAndEmptyArrays: true } },
 	];
 
 	if (query.searchTerm) {
@@ -373,7 +402,185 @@ const updateBookingStatus = async (bookingId: string, status: BOOKING_STATUS) =>
 	}
 };
 
+interface ITourWindow {
+	_id: Types.ObjectId;
+	title?: string;
+	division?: Types.ObjectId;
+	startDate?: Date;
+	endDate?: Date;
+}
+
+const tourRange = (tour: ITourWindow | null) => {
+	if (!tour?.startDate) return null;
+	return { start: tour.startDate.getTime(), end: (tour.endDate ?? tour.startDate).getTime() };
+};
+
+const findGuideConflicts = async (guideIds: Types.ObjectId[], booking: { _id: Types.ObjectId }, tour: ITourWindow) => {
+	const range = tourRange(tour);
+	const conflicts = new Map<string, string>();
+	if (!range || guideIds.length === 0) return conflicts;
+
+	const others = await Booking.find({
+		guide: { $in: guideIds },
+		status: BOOKING_STATUS.COMPLETE,
+		_id: { $ne: booking._id },
+		tour: { $ne: tour._id },
+	})
+		.select("guide tour")
+		.populate<{ tour: ITourWindow | null }>("tour", "title startDate endDate")
+		.lean();
+
+	for (const other of others) {
+		const otherRange = tourRange(other.tour);
+		if (otherRange && otherRange.start <= range.end && range.start <= otherRange.end && other.guide) {
+			conflicts.set(other.guide.toString(), other.tour?.title ?? "another tour");
+		}
+	}
+
+	return conflicts;
+};
+
+const loadAssignableBooking = async (bookingId: string) => {
+	assertObjectId(bookingId);
+
+	const booking = await Booking.findById(bookingId)
+		.select("status tour guide")
+		.populate<{ tour: ITourWindow | null }>("tour", "title division startDate endDate")
+		.lean();
+
+	if (!booking) {
+		throw new AppError(httpStatus.NOT_FOUND, "Booking not found.");
+	}
+	if (booking.status !== BOOKING_STATUS.COMPLETE) {
+		throw new AppError(httpStatus.BAD_REQUEST, "A guide can only be assigned to a paid (COMPLETE) booking.");
+	}
+	if (!booking.tour?.division) {
+		throw new AppError(httpStatus.BAD_REQUEST, "This booking's tour has no division.");
+	}
+
+	return booking as typeof booking & { tour: ITourWindow & { division: Types.ObjectId } };
+};
+
+const getAvailableGuides = async (bookingId: string) => {
+	const booking = await loadAssignableBooking(bookingId);
+
+	const applications = await GuideApplication.find({
+		division: booking.tour.division,
+		status: GUIDE_APPLICATION_STATUS.APPROVED,
+	})
+		.select("user experienceYears languages")
+		.lean();
+
+	const guides = await User.find({
+		_id: { $in: applications.map((application) => application.user) },
+		role: Role.GUIDE,
+		isActive: IsActive.ACTIVE,
+	})
+		.where("isDeleted")
+		.ne(true)
+		.select("name email phone picture")
+		.lean();
+
+	const conflicts = await findGuideConflicts(
+		guides.map((guide) => guide._id),
+		booking,
+		booking.tour,
+	);
+	const profileByUser = new Map(applications.map((application) => [application.user.toString(), application]));
+	const currentGuide = booking.guide?.toString() ?? null;
+
+	const data = guides
+		.map((guide) => {
+			const id = guide._id.toString();
+			const profile = profileByUser.get(id);
+			return {
+				...guide,
+				experienceYears: profile?.experienceYears ?? 0,
+				languages: profile?.languages ?? [],
+				isAssigned: id === currentGuide,
+				isAvailable: !conflicts.has(id),
+				conflictWith: conflicts.get(id) ?? null,
+			};
+		})
+		.sort((a, b) => Number(b.isAvailable) - Number(a.isAvailable) || b.experienceYears - a.experienceYears);
+
+	return { currentGuide, guides: data };
+};
+
+const assignGuide = async (bookingId: string, guideId: string | null) => {
+	const booking = await loadAssignableBooking(bookingId);
+
+	if (guideId) {
+		const [guide, approved] = await Promise.all([
+			User.findOne({ _id: guideId, role: Role.GUIDE, isActive: IsActive.ACTIVE }).where("isDeleted").ne(true).select("_id").lean(),
+			GuideApplication.exists({
+				user: guideId,
+				division: booking.tour.division,
+				status: GUIDE_APPLICATION_STATUS.APPROVED,
+			}),
+		]);
+
+		if (!guide) {
+			throw new AppError(httpStatus.BAD_REQUEST, "This user is not an active guide.");
+		}
+		if (!approved) {
+			throw new AppError(httpStatus.BAD_REQUEST, "This guide is not approved for this tour's division.");
+		}
+
+		const conflicts = await findGuideConflicts([guide._id], booking, booking.tour);
+		const conflict = conflicts.get(guide._id.toString());
+		if (conflict) {
+			throw new AppError(httpStatus.CONFLICT, `This guide is already leading "${conflict}" on overlapping dates.`);
+		}
+	}
+
+	return Booking.findByIdAndUpdate(
+		bookingId,
+		{ guide: guideId, guideAssignedAt: guideId ? new Date() : null },
+		{ new: true, runValidators: true },
+	)
+		.populate("guide", "name email phone picture")
+		.populate("tour", "title startDate endDate");
+};
+
+const getAssignedBookings = async (guideId: string, query: TAssignedBookingsQuery) => {
+	const filter: Record<string, unknown> = { guide: guideId, status: BOOKING_STATUS.COMPLETE };
+
+	if (query.scope !== "all") {
+		const now = new Date();
+		const upcoming = { $or: [{ endDate: { $gte: now } }, { endDate: null, startDate: { $gte: now } }] };
+		const past = { $or: [{ endDate: { $lt: now } }, { endDate: null, startDate: { $lt: now } }] };
+		filter.tour = { $in: await Tour.find(query.scope === "upcoming" ? upcoming : past).distinct("_id") };
+	}
+
+	const skip = (query.page - 1) * query.limit;
+
+	const [data, total] = await Promise.all([
+		Booking.find(filter)
+			.sort("-createdAt")
+			.skip(skip)
+			.limit(query.limit)
+			.select("bookingCode tour user guestCount status guideAssignedAt createdAt")
+			.populate({
+				path: "tour",
+				select: `${TOUR_CARD_FIELDS} departureLocation arrivalLocation division`,
+				populate: { path: "division", select: "name" },
+			})
+			.populate("user", "name phone email")
+			.lean(),
+		Booking.countDocuments(filter),
+	]);
+
+	return {
+		data,
+		meta: { page: query.page, limit: query.limit, total, totalPage: Math.ceil(total / query.limit) },
+	};
+};
+
 export const BookingService = {
+	getAvailableGuides,
+	assignGuide,
+	getAssignedBookings,
 	createBooking,
 	getUserBookings,
 	getUserBookingSummary,
