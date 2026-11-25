@@ -1,6 +1,8 @@
 import { baseApi } from "@/redux/baseApi";
 import type { IMeta, IResponse, ITour, ITourFilterOptions, ITourType } from "@/types";
+export type TTourStatus = "active" | "expired" | "all";
 type TToursParams = {
+	status?: TTourStatus;
 	page?: number;
 	limit?: number;
 	searchTerm?: string;
@@ -26,10 +28,11 @@ export const tourApi = baseApi.injectEndpoints({
 				meta: response.meta,
 			}),
 		}),
-		getTourFilterOptions: builder.query<ITourFilterOptions, void>({
-			query: () => ({
+		getTourFilterOptions: builder.query<ITourFilterOptions, TTourStatus | void>({
+			query: (status) => ({
 				url: "/tour/filter-options",
 				method: "GET",
+				params: status ? { status } : undefined,
 			}),
 			providesTags: ["TOUR"],
 			transformResponse: (response: IResponse<ITourFilterOptions>) => response.data,

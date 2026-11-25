@@ -28,6 +28,11 @@ export const userApi = baseApi.injectEndpoints({
 			providesTags: ["USERS"],
 			transformResponse: (response: IResponse<IUser>) => response.data,
 		}),
+		updateMe: builder.mutation<IUser, FormData>({
+			query: (data) => ({ url: "/user/me", method: "PATCH", data }),
+			invalidatesTags: ["USER"],
+			transformResponse: (response: IResponse<IUser>) => response.data,
+		}),
 		updateUser: builder.mutation<IUser, TUpdateUserPayload>({
 			query: ({ id, ...data }) => ({ url: `/user/${id}`, method: "PATCH", data }),
 			invalidatesTags: ["USERS", "STATS"],
@@ -36,4 +41,4 @@ export const userApi = baseApi.injectEndpoints({
 	}),
 });
 
-export const { useGetUsersQuery, useGetUserQuery, useUpdateUserMutation } = userApi;
+export const { useGetUsersQuery, useGetUserQuery, useUpdateUserMutation, useUpdateMeMutation } = userApi;

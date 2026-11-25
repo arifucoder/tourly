@@ -35,6 +35,7 @@ export interface ITour {
 	tourType: { _id: string; name: string } | null;
 	seatsLeft?: number | null;
 	bookingsCount?: number;
+	isExpired?: boolean;
 	createdAt?: string;
 	updatedAt?: string;
 }

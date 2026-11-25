@@ -162,12 +162,13 @@ export default function TourDetails() {
 	const days = hasDates ? getDays(tour.startDate!, tour.endDate!) : 0;
 	const seatsLeft = tour.seatsLeft ?? null;
 	const soldOut = seatsLeft === 0;
+	const expired = Boolean(tour.isExpired);
 	const maxGuests = Math.max(1, Math.min(tour.maxGuest ?? DEFAULT_MAX_GUESTS, seatsLeft ?? Infinity));
 	const hasPrice = tour.costFrom !== undefined;
 	const price = tour.costFrom ?? 0;
 	const total = price * guests;
 	const guestWord = guests === 1 ? "guest" : "guests";
-	const canBook = hasPrice && !soldOut && !isBooking;
+	const canBook = hasPrice && !soldOut && !expired && !isBooking;
 
 	const facts: TFact[] = [];
 	if (tour.departureLocation || tour.arrivalLocation)
@@ -259,6 +260,8 @@ export default function TourDetails() {
 			<Loader2 className="size-4.5 animate-spin" />
 			Processing…
 		</>
+	) : expired ? (
+		"Booking closed"
 	) : soldOut ? (
 		"Fully booked"
 	) : (
@@ -306,7 +309,12 @@ export default function TourDetails() {
 									{seatsLeft} {seatsLeft === 1 ? "seat" : "seats"} left
 								</span>
 							)}
-							{soldOut && (
+							{expired && (
+								<span className="rounded-full bg-muted px-3 py-1.25 text-[12.5px] font-semibold text-muted-foreground">
+									Departed
+								</span>
+							)}
+							{soldOut && !expired && (
 								<span className="rounded-full bg-destructive-soft px-3 py-1.25 text-[12.5px] font-semibold text-destructive">
 									Fully booked
 								</span>
@@ -468,7 +476,7 @@ export default function TourDetails() {
 							<button
 								type="button"
 								onClick={() => setGuests((g) => Math.max(1, g - 1))}
-								disabled={guests <= 1 || soldOut}
+								disabled={guests <= 1 || soldOut || expired}
 								aria-label="Remove a guest"
 								className={cn(squareBtn, "w-11 px-0")}
 							>
@@ -480,7 +488,7 @@ export default function TourDetails() {
 							<button
 								type="button"
 								onClick={() => setGuests((g) => Math.min(maxGuests, g + 1))}
-								disabled={guests >= maxGuests || soldOut}
+								disabled={guests >= maxGuests || soldOut || expired}
 								aria-label="Add a guest"
 								className={cn(squareBtn, "w-11 border-primary px-0 text-primary-text hover:border-primary")}
 							>
@@ -513,7 +521,9 @@ export default function TourDetails() {
 						{bookLabel}
 					</button>
 					<p className="text-center text-[12.5px] text-muted-foreground">
-						You review everything before paying · secure checkout in taka
+						{expired
+							? "This departure has already left. Browse other tours for upcoming dates."
+							: "You review everything before paying · secure checkout in taka"}
 					</p>
 				</aside>
 			</div>

@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils";
 import { useUserInfoQuery } from "@/redux/features/auth/auth.api";
 import { useGetUsersQuery, useUpdateUserMutation } from "@/redux/features/User/user.api";
 import type { IUser, TApiError, TRole, TUserStatus } from "@/types";
-import { Ban, Lock, UserRoundSearch, Users as UsersIcon, X } from "lucide-react";
+import { BadgeCheck, Ban, Lock, ShieldCheck, UserRoundSearch, Users as UsersIcon, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -158,6 +158,34 @@ function UserPanel({
 					</div>
 				))}
 			</dl>
+
+			{user.role === role.guide && user.guideInfo && (
+				<div className="flex items-start gap-3 rounded-[10px] border border-border bg-surface-2 px-3.5 py-3">
+					<span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-info-soft text-info">
+						{user.guideInfo.via === "GUIDE_APPLICATION" ? <BadgeCheck className="size-4" /> : <ShieldCheck className="size-4" />}
+					</span>
+					<div className="min-w-0 text-[13.5px] leading-snug">
+						<strong className="block text-[14px]">
+							{user.guideInfo.via === "GUIDE_APPLICATION" ? "Guide application approved" : "Made a guide by an admin"}
+						</strong>
+						{(user.guideInfo.by || user.guideInfo.at) && (
+							<span className="text-muted-foreground">
+								{[
+									user.guideInfo.by && `by ${user.guideInfo.by}`,
+									user.guideInfo.at && `on ${formatDate(user.guideInfo.at)}`,
+								]
+									.filter(Boolean)
+									.join(" ")}
+							</span>
+						)}
+						<span className="mt-0.5 block text-muted-foreground">
+							{user.guideInfo.divisions.length
+								? `Approved for ${user.guideInfo.divisions.join(", ")}`
+								: "No approved guide application"}
+						</span>
+					</div>
+				</div>
+			)}
 
 			{locked ? (
 				<p className="flex items-start gap-2 rounded-[10px] bg-surface-2 px-3.5 py-3 text-[13.5px] text-muted-foreground">

@@ -26,6 +26,23 @@ export const guideApplicationApi = baseApi.injectEndpoints({
 			providesTags: ["GUIDE_APPLICATION"],
 			transformResponse: (response: IResponse<{ counts: TApplicationCounts }>) => response.data.counts,
 		}),
+		getMyGuideApplications: builder.query<IGuideApplication[], void>({
+			query: () => ({ url: "/guide-application/me", method: "GET" }),
+			providesTags: ["GUIDE_APPLICATION"],
+			transformResponse: (response: IResponse<IGuideApplication[]>) => response.data,
+		}),
+		applyAsGuide: builder.mutation<
+			IGuideApplication,
+			{ division: string; experienceYears: number; languages: string[]; message: string }
+		>({
+			query: (data) => ({ url: "/guide-application", method: "POST", data }),
+			invalidatesTags: ["GUIDE_APPLICATION"],
+			transformResponse: (response: IResponse<IGuideApplication>) => response.data,
+		}),
+		withdrawGuideApplication: builder.mutation<null, string>({
+			query: (id) => ({ url: `/guide-application/me/${id}`, method: "DELETE" }),
+			invalidatesTags: ["GUIDE_APPLICATION"],
+		}),
 		reviewGuideApplication: builder.mutation<
 			IGuideApplication,
 			{ id: string; status: Exclude<TApplicationStatus, "PENDING">; reviewNote?: string }
@@ -41,4 +58,7 @@ export const {
 	useGetGuideApplicationsQuery,
 	useGetGuideApplicationSummaryQuery,
 	useReviewGuideApplicationMutation,
+	useGetMyGuideApplicationsQuery,
+	useApplyAsGuideMutation,
+	useWithdrawGuideApplicationMutation,
 } = guideApplicationApi;

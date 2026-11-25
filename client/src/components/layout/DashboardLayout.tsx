@@ -67,7 +67,7 @@ export default function DashboardLayout() {
 	const sections = getSidebarItems(user?.role as TRole);
 	const allItems = sections.flatMap((section) => section.items);
 	const visibleItems = allItems.filter((item) => !item.hidden);
-	const rootUrl = visibleItems[0]?.url ?? "/";
+	const rootUrl = `/${pathname.split("/")[1] ?? ""}`;
 	const current = allItems.find((item) => matchPath({ path: item.url, end: true }, pathname));
 	const pageTitle = current?.title ?? "Page not found";
 	const { crumb, label } = consoleLabel(user?.role);

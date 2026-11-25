@@ -5,6 +5,8 @@ import type {
 	IAvailableGuide,
 	IBookingDetail,
 	IMeta,
+	IMyBooking,
+	IMyBookingSummary,
 	IResponse,
 	TAssignedScope,
 	TBookingStatus,
@@ -63,6 +65,30 @@ export const bookingApi = baseApi.injectEndpoints({
 			transformResponse: (response: IResponse<{ currentGuide: string | null; guides: IAvailableGuide[] }>) =>
 				response.data,
 		}),
+		getMyBookings: builder.query<
+			{ data: IMyBooking[]; meta: IMeta },
+			{ status?: TBookingStatus; page?: number; limit?: number }
+		>({
+			query: (params) => ({ url: "/booking/my-bookings", method: "GET", params }),
+			providesTags: ["BOOKING"],
+			transformResponse: (response: IResponse<IMyBooking[]> & { meta: IMeta }) => ({
+				data: response.data,
+				meta: response.meta,
+			}),
+		}),
+		getMyBookingSummary: builder.query<IMyBookingSummary, void>({
+			query: () => ({ url: "/booking/my-bookings/summary", method: "GET" }),
+			providesTags: ["BOOKING"],
+			transformResponse: (response: IResponse<IMyBookingSummary>) => response.data,
+		}),
+		cancelMyBooking: builder.mutation<unknown, string>({
+			query: (id) => ({ url: `/booking/${id}/cancel`, method: "PATCH" }),
+			invalidatesTags: ["BOOKING"],
+		}),
+		initPayment: builder.mutation<{ paymentUrl: string }, string>({
+			query: (bookingId) => ({ url: `/payment/init-payment/${bookingId}`, method: "POST" }),
+			transformResponse: (response: IResponse<{ paymentUrl: string }>) => response.data,
+		}),
 		getAssignedBookings: builder.query<
 			{ data: IAssignedBooking[]; meta: IMeta },
 			{ scope: TAssignedScope; page?: number; limit?: number }
@@ -90,4 +116,8 @@ export const {
 	useGetAvailableGuidesQuery,
 	useAssignGuideMutation,
 	useGetAssignedBookingsQuery,
+	useGetMyBookingsQuery,
+	useGetMyBookingSummaryQuery,
+	useCancelMyBookingMutation,
+	useInitPaymentMutation,
 } = bookingApi;

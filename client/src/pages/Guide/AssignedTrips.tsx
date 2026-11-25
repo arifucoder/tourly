@@ -1,4 +1,6 @@
 import PageHeader from "@/components/dashboard/PageHeader";
+import StatTile from "@/components/dashboard/StatTile";
+import StatusTabs from "@/components/dashboard/StatusTabs";
 import { TripPhaseBadge } from "@/components/dashboard/StatusBadge";
 import { EmptyState, ErrorState, TableSkeleton } from "@/components/dashboard/States";
 import { btnGhost, btnSm, dashCard, iconBtn, td, th } from "@/components/dashboard/styles";
@@ -9,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { useUserInfoQuery } from "@/redux/features/auth/auth.api";
 import { useGetAssignedBookingsQuery } from "@/redux/features/Booking/booking.api";
 import type { TAssignedScope } from "@/types";
-import { CalendarCheck, CalendarClock, History, ImageIcon, Phone, UsersRound, type LucideIcon } from "lucide-react";
+import { CalendarCheck, CalendarClock, History, ImageIcon, Phone, UsersRound } from "lucide-react";
 import { useState } from "react";
 import { useSearchParams } from "react-router";
 
@@ -24,18 +26,6 @@ const TABS: { key: TAssignedScope; label: string }[] = [
 
 const isScope = (value: string | null): value is TAssignedScope =>
 	value === "upcoming" || value === "past" || value === "all";
-
-function Stat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
-	return (
-		<div className={cn(dashCard, "flex flex-col gap-3 px-4.5 py-4")}>
-			<span className="flex items-center gap-2 text-[13px] font-medium text-muted-foreground">
-				<Icon aria-hidden="true" className="size-4.25 shrink-0 text-primary-text" strokeWidth={1.9} />
-				{label}
-			</span>
-			<span className="text-[26px] leading-tight font-semibold tabular-nums">{value}</span>
-		</div>
-	);
-}
 
 export default function AssignedTrips() {
 	const [searchParams, setSearchParams] = useSearchParams();
@@ -80,40 +70,19 @@ export default function AssignedTrips() {
 			/>
 
 			<section aria-label="Trip summary" className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
-				<Stat icon={CalendarClock} label="Upcoming trips" value={formatNumber(counts.upcoming)} />
-				<Stat
+				<StatTile icon={CalendarClock} label="Upcoming trips" value={formatNumber(counts.upcoming)} />
+				<StatTile
 					icon={CalendarCheck}
 					label="Next departure"
 					value={nextStart ? formatDate(nextStart, { day: "numeric", month: "short" }) : "—"}
 				/>
-				<Stat icon={UsersRound} label="Travellers ahead" value={formatNumber(travellers)} />
-				<Stat icon={History} label="Past trips" value={formatNumber(counts.past)} />
+				<StatTile icon={UsersRound} label="Travellers ahead" value={formatNumber(travellers)} />
+				<StatTile icon={History} label="Past trips" value={formatNumber(counts.past)} />
 			</section>
 
 			<h2 className="mt-1 text-base font-semibold">Assigned trips</h2>
 
-			<nav aria-label="Filter trips" className="-mb-0.5 flex gap-2 overflow-x-auto pb-0.5">
-				{TABS.map((tab) => {
-					const on = tab.key === scope;
-					return (
-						<button
-							key={tab.key}
-							type="button"
-							aria-pressed={on}
-							onClick={() => pickTab(tab.key)}
-							className={cn(
-								"inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3.5 text-sm font-semibold whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground",
-								on && "border-foreground bg-foreground text-background hover:text-background",
-							)}
-						>
-							{tab.label}
-							{counts[tab.key] !== undefined && (
-								<span className="font-medium opacity-80">{formatNumber(counts[tab.key])}</span>
-							)}
-						</button>
-					);
-				})}
-			</nav>
+			<StatusTabs label="Filter trips" tabs={TABS} value={scope} counts={counts} onChange={pickTab} />
 
 			<section className={cn(dashCard, "overflow-hidden")}>
 				<div className="relative overflow-x-auto">

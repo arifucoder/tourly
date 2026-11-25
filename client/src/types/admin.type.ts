@@ -18,6 +18,12 @@ export interface IUser {
 	signInMethods?: ("google" | "credentials")[];
 	bookingsCount?: number;
 	createdAt?: string;
+	guideInfo?: {
+		via: "ADMIN" | "GUIDE_APPLICATION";
+		by: string | null;
+		at: string | null;
+		divisions: string[];
+	} | null;
 }
 
 export interface IAdminBooking {
@@ -53,6 +59,7 @@ export interface IBookingDetail {
 		departureLocation?: string;
 		arrivalLocation?: string;
 		division?: { _id: string; name: string } | null;
+		tourType?: { _id: string; name: string } | null;
 	};
 	payment?: {
 		_id: string;
@@ -63,7 +70,7 @@ export interface IBookingDetail {
 		createdAt?: string;
 		updatedAt?: string;
 	};
-	guide?: { _id: string; name: string; email?: string; phone?: string; picture?: string } | null;
+	guide?: { _id: string; name: string; email?: string; phone?: string; picture?: string; contactShared?: boolean } | null;
 }
 
 export interface IAvailableGuide {
@@ -178,4 +185,54 @@ export interface IAssignedBooking {
 		arrivalLocation?: string;
 		division?: { _id: string; name: string } | null;
 	};
+}
+
+export interface IMyBooking {
+	_id: string;
+	bookingCode?: string;
+	status: TBookingStatus;
+	guestCount: number;
+	createdAt: string;
+	expiredAt?: string | null;
+	tour: {
+		_id: string;
+		title: string;
+		slug: string;
+		images?: string[];
+		location?: string;
+		startDate?: string;
+		endDate?: string;
+		costFrom?: number;
+	} | null;
+	payment?: {
+		_id: string;
+		transactionId: string;
+		amount: number;
+		status: TPaymentStatus;
+		invoiceUrl?: string;
+		updatedAt?: string;
+	} | null;
+}
+
+export interface IMyBookingSummary {
+	counts: Record<TBookingStatus | "ALL", number>;
+	upcomingTrips: number;
+	completedTrips: number;
+	pendingAmount: number;
+	totalSpent: number;
+}
+
+export interface IMe {
+	_id: string;
+	name: string;
+	email: string;
+	phone?: string;
+	address?: string;
+	picture?: string;
+	role: TRole;
+	isVerified?: boolean;
+	isActive?: TUserStatus;
+	hasPassword: boolean;
+	signInMethods: ("google" | "credentials")[];
+	createdAt?: string;
 }

@@ -8,7 +8,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { formatDateRange, formatNumber, formatTaka } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { useGetTourFilterOptionsQuery, useGetToursQuery, useRemoveTourMutation } from "@/redux/features/Tour/tour.api";
+import {
+	type TTourStatus,
+	useGetTourFilterOptionsQuery,
+	useGetToursQuery,
+	useRemoveTourMutation,
+} from "@/redux/features/Tour/tour.api";
 import type { TApiError } from "@/types";
 import { ImageIcon, MapPinned, Pencil, Plus, SearchX, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -25,12 +30,19 @@ const SORTS = [
 	{ value: "startDate", label: "Departure: soonest" },
 ];
 
+const STATUSES: { value: TTourStatus; label: string }[] = [
+	{ value: "all", label: "All statuses" },
+	{ value: "active", label: "Active" },
+	{ value: "expired", label: "Expired" },
+];
+
 export default function Tours() {
 	const [page, setPage] = useState(1);
 	const [search, setSearch] = useState("");
 	const [division, setDivision] = useState("");
 	const [tourType, setTourType] = useState("");
 	const [sort, setSort] = useState("-createdAt");
+	const [status, setStatus] = useState<TTourStatus>("all");
 
 	const searchTerm = useDebouncedValue(search.trim());
 
@@ -38,16 +50,17 @@ export default function Tours() {
 		page,
 		limit: LIMIT,
 		sort,
+		status,
 		...(searchTerm && { searchTerm }),
 		...(division && { division }),
 		...(tourType && { tourType }),
 	});
-	const { data: options } = useGetTourFilterOptionsQuery();
+	const { data: options } = useGetTourFilterOptionsQuery("all");
 	const [removeTour] = useRemoveTourMutation();
 
 	const tours = data?.data ?? [];
 	const meta = data?.meta;
-	const hasFilters = Boolean(searchTerm || division || tourType);
+	const hasFilters = Boolean(searchTerm || division || tourType || status !== "all");
 
 	const handleRemoveTour = async (id: string) => {
 		const toastId = toast.loading("Deleting tour…");
@@ -110,6 +123,12 @@ export default function Tours() {
 							{ value: "", label: "All types" },
 							...(options?.tourTypes ?? []).map((item) => ({ value: item._id, label: item.name })),
 						]}
+					/>
+					<SelectField
+						label="Status"
+						value={status}
+						onChange={(event) => resetPage(setStatus)(event.target.value as TTourStatus)}
+						options={STATUSES}
 					/>
 					<SelectField
 						label="Sort"
@@ -187,7 +206,7 @@ export default function Tours() {
 											title={hasFilters ? "No tours match these filters" : "No tours yet"}
 											description={
 												hasFilters
-													? "Try another division or type, or clear the search."
+													? "Try another division, type or status, or clear the search."
 													: "Create the first tour and it will appear on its public page."
 											}
 											action={
@@ -229,7 +248,14 @@ export default function Tours() {
 									<td className={td}>{tour.division?.name ?? "—"}</td>
 									<td className={td}>{tour.tourType ? <Badge tone="accent">{tour.tourType.name}</Badge> : "—"}</td>
 									<td className={cn(td, "whitespace-nowrap tabular-nums")}>
-										{formatDateRange(tour.startDate, tour.endDate)}
+										<div className="flex flex-col items-start gap-1">
+											{formatDateRange(tour.startDate, tour.endDate)}
+											{tour.isExpired ? (
+												<Badge tone="neutral">Expired</Badge>
+											) : (
+												<Badge tone="success">Active</Badge>
+											)}
+										</div>
 									</td>
 									<td className={cn(td, "text-right font-semibold whitespace-nowrap tabular-nums")}>
 										{formatTaka(tour.costFrom)}
