@@ -1,6 +1,14 @@
 import z from "zod";
 import { IsActive, Role } from "./user.interface";
 
+export const passwordSchema = z
+	.string({ error: "Password must be string" })
+	.min(8, { error: "Password must be at least 8 characters long." })
+	.max(128, { error: "Password cannot exceed 128 characters." })
+	.regex(/[A-Z]/, { error: "Password must contain at least 1 uppercase letter." })
+	.regex(/\d/, { error: "Password must contain at least 1 number." })
+	.regex(/[^A-Za-z0-9]/, { error: "Password must contain at least 1 special character." });
+
 export const createUserZodSchema = z.object({
 	name: z
 		.string({ error: "Name must be string" })
@@ -12,18 +20,7 @@ export const createUserZodSchema = z.object({
 		})
 		.min(5, { error: "Email must be at least 5 characters long." })
 		.max(100, { error: "Email cannot exceed 100 characters." }),
-	password: z
-		.string({ error: "Password must be string" })
-		.min(8, { error: "Password must be at least 8 characters long." })
-		.regex(/^(?=.*[A-Z])/, {
-			error: "Password must contain at least 1 uppercase letter.",
-		})
-		.regex(/^(?=.*[!@#$%^&*])/, {
-			error: "Password must contain at least 1 special character.",
-		})
-		.regex(/^(?=.*\d)/, {
-			error: "Password must contain at least 1 number.",
-		}),
+	password: passwordSchema,
 	phone: z
 		.string({ error: "Phone Number must be string" })
 		.regex(/^(?:\+8801\d{9}|01\d{9})$/, {
@@ -57,3 +54,15 @@ export const updateUserZodSchema = z.object({
 		.max(200, { error: "Address cannot exceed 200 characters." })
 		.optional(),
 });
+
+export const updateMyProfileZodSchema = z.object({
+	name: z.string().trim().min(2, { error: "Name must be at least 2 characters long." }).max(50).optional(),
+	phone: z
+		.string()
+		.trim()
+		.regex(/^(?:\+8801\d{9}|01\d{9})$/, { error: "Enter an 11-digit mobile number, e.g. 01712345678" })
+		.optional(),
+	address: z.string().trim().max(200, { error: "Address cannot exceed 200 characters." }).optional(),
+});
+
+export type TUpdateMyProfilePayload = z.infer<typeof updateMyProfileZodSchema>;

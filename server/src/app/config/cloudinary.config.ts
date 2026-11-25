@@ -44,6 +44,21 @@ export const uploadBufferToCloudinary = async (
 	}
 };
 
+export const uploadAvatarToCloudinary = (buffer: Buffer, userId: string) =>
+	new Promise<UploadApiResponse>((resolve, reject) => {
+		cloudinary.uploader
+			.upload_stream(
+				{
+					folder: "avatars",
+					public_id: `${userId}-${Date.now()}`,
+					resource_type: "image",
+					transformation: [{ width: 400, height: 400, crop: "fill", gravity: "face" }],
+				},
+				(error, result) => (error || !result ? reject(error ?? new Error("Upload failed")) : resolve(result)),
+			)
+			.end(buffer);
+	});
+
 export const deleteImageFromCLoudinary = async (url: string) => {
 	try {
 		const regex = /\/upload\/(?:v\d+\/)?(.+?)\.[a-z0-9]+$/i;

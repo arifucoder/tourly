@@ -1,6 +1,7 @@
 import type { UploadApiResponse } from "cloudinary";
 import multer, { type StorageEngine } from "multer";
 import path from "path";
+import AppError from "../errorHelpers/AppError";
 import { cloudinaryUpload } from "./cloudinary.config";
 
 const makeUniqueFileName = (originalName: string) => {
@@ -45,3 +46,15 @@ const cloudinaryStorage: StorageEngine = {
 };
 
 export const multerUpload = multer({ storage: cloudinaryStorage });
+
+export const avatarUpload = multer({
+	storage: multer.memoryStorage(),
+	limits: { fileSize: 2 * 1024 * 1024, files: 1 },
+	fileFilter: (req, file, cb) => {
+		if (file.mimetype === "image/jpeg" || file.mimetype === "image/png") {
+			cb(null, true);
+			return;
+		}
+		cb(new AppError(400, "Profile picture must be a JPG or PNG image."));
+	},
+});

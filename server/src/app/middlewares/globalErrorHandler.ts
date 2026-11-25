@@ -16,8 +16,8 @@ export const globalErrorHandler = async (err: any, req: Request, res: Response, 
 		console.log(err);
 	}
 
-	if (req.file) {
-		await deleteImageFromCLoudinary(req.file.path);
+	if (req.file?.path) {
+		await deleteImageFromCLoudinary(req.file.path).catch(() => undefined);
 	}
 
 	if (req.files && Array.isArray(req.files) && req.files.length) {
@@ -53,6 +53,9 @@ export const globalErrorHandler = async (err: any, req: Request, res: Response, 
 	} else if (err instanceof AppError) {
 		statusCode = err.statusCode;
 		message = err.message;
+	} else if (err?.name === "MulterError") {
+		statusCode = 400;
+		message = err.code === "LIMIT_FILE_SIZE" ? "File is too large." : err.message;
 	} else if (typeof err?.status === "number" && err.status >= 400 && err.status < 500) {
 		statusCode = err.status;
 		message = err.expose ? err.message : "Bad request";
