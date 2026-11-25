@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 import { envVars } from "../../config/env";
 import AppError from "../../errorHelpers/AppError";
 import { sendEmail } from "../../utils/sendEmail";
-import { createNewAccessTokenWithRefreshToken } from "../../utils/userTokens";
+import { createNewAccessTokenWithRefreshToken, getPasswordResetSecret } from "../../utils/userTokens";
 import { IsActive, type IAuthProvider } from "../user/user.interface";
 import { User } from "../user/user.model";
 
@@ -80,13 +80,7 @@ const forgotPassword = async (email: string) => {
 		throw new AppError(httpStatus.BAD_REQUEST, "User is deleted");
 	}
 
-	const jwtPayload = {
-		userId: isUserExist._id,
-		email: isUserExist.email,
-		role: isUserExist.role,
-	};
-
-	const resetToken = jwt.sign(jwtPayload, envVars.JWT_ACCESS_SECRET, {
+	const resetToken = jwt.sign({ userId: isUserExist._id }, getPasswordResetSecret(isUserExist.password), {
 		expiresIn: "10m",
 	});
 
@@ -103,19 +97,29 @@ const forgotPassword = async (email: string) => {
 	});
 };
 
-const resetPassword = async (payload: Record<string, any>, decodedToken: JwtPayload) => {
-	if (payload.id != decodedToken.userId) {
-		throw new AppError(401, "You can not reset your password");
+const resetPassword = async (payload: Record<string, any>, resetToken?: string) => {
+	if (!resetToken) {
+		throw new AppError(httpStatus.UNAUTHORIZED, "Reset token is missing");
 	}
 
-	const isUserExist = await User.findById(decodedToken.userId);
+	const decoded = jwt.decode(resetToken) as JwtPayload | null;
+
+	if (!decoded?.userId || payload.id != decoded.userId) {
+		throw new AppError(httpStatus.UNAUTHORIZED, "Invalid or expired reset link");
+	}
+
+	const isUserExist = await User.findById(decoded.userId);
 	if (!isUserExist) {
-		throw new AppError(401, "User does not exist");
+		throw new AppError(httpStatus.UNAUTHORIZED, "Invalid or expired reset link");
 	}
 
-	const hashedPassword = await bcryptjs.hash(payload.newPassword, envVars.BCRYPT_SALT_ROUND);
+	try {
+		jwt.verify(resetToken, getPasswordResetSecret(isUserExist.password));
+	} catch {
+		throw new AppError(httpStatus.UNAUTHORIZED, "Invalid or expired reset link");
+	}
 
-	isUserExist.password = hashedPassword;
+	isUserExist.password = await bcryptjs.hash(payload.newPassword, envVars.BCRYPT_SALT_ROUND);
 
 	await isUserExist.save();
 };

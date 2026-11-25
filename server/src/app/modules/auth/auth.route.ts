@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type NextFunction, type Request, type Response } from "express";
 import passport from "passport";
 import { envVars } from "../../config/env";
 import { checkAuth } from "../../middlewares/checkAuth";
@@ -13,18 +13,12 @@ router.post("/logout", AuthController.logout);
 router.post("/change-password", checkAuth(...Object.values(Role)), AuthController.changePassword);
 router.post("/set-password", checkAuth(...Object.values(Role)), AuthController.setPassword);
 router.post("/forgot-password", AuthController.forgotPassword);
-router.post("/reset-password", checkAuth(...Object.values(Role)), AuthController.resetPassword);
+router.post("/reset-password", AuthController.resetPassword);
 
 router.get("/google", async (req: Request, res: Response, next: NextFunction) => {
 	const redirect = req.query.redirect || "/";
 	passport.authenticate("google", { scope: ["profile", "email"], state: redirect as string })(req, res, next);
 });
-
-router.get(
-	"/google/callback",
-	passport.authenticate("google", { failureRedirect: "/login" }),
-	AuthController.googleCallbackController,
-);
 
 router.get(
 	"/google/callback",

@@ -19,7 +19,7 @@ export const checkAuth =
 
 				const verifiedToken = verifyToken(accessToken, envVars.JWT_ACCESS_SECRET) as JwtPayload;
 
-				const isUserExist = await User.findOne({ email: verifiedToken.email });
+				const isUserExist = await User.findById(verifiedToken.userId);
 
 				if (!isUserExist) {
 					throw new AppError(httpStatus.BAD_REQUEST, "User does not exist");
@@ -33,10 +33,10 @@ export const checkAuth =
 				if (!isUserExist.isVerified) {
 					throw new AppError(httpStatus.BAD_REQUEST, "User is not verified");
 				}
-				if (!authRoles.includes(verifiedToken.role)) {
+				if (!authRoles.includes(isUserExist.role)) {
 					throw new AppError(403, "You are not permitted to view this route!!!");
 				}
-				req.user = verifiedToken;
+				req.user = { userId: isUserExist._id.toString(), role: isUserExist.role };
 				next();
 			} catch (error) {
 				console.log("jwt error", error);

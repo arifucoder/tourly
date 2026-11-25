@@ -7,11 +7,7 @@ import { User } from "../modules/user/user.model";
 import { generateToken, verifyToken } from "./jwt";
 
 export const createUserTokens = (user: Partial<IUser>) => {
-	const jwtPayload = {
-		userId: user._id,
-		email: user.email,
-		role: user.role,
-	};
+	const jwtPayload = { userId: user._id, role: user.role };
 	const accessToken = generateToken(jwtPayload, envVars.JWT_ACCESS_SECRET, envVars.JWT_ACCESS_EXPIRES);
 
 	const refreshToken = generateToken(jwtPayload, envVars.JWT_REFRESH_SECRET, envVars.JWT_REFRESH_EXPIRES);
@@ -25,7 +21,7 @@ export const createUserTokens = (user: Partial<IUser>) => {
 export const createNewAccessTokenWithRefreshToken = async (refreshToken: string) => {
 	const verifiedRefreshToken = verifyToken(refreshToken, envVars.JWT_REFRESH_SECRET) as JwtPayload;
 
-	const isUserExist = await User.findOne({ email: verifiedRefreshToken.email });
+	const isUserExist = await User.findById(verifiedRefreshToken.userId);
 
 	if (!isUserExist) {
 		throw new AppError(httpStatus.BAD_REQUEST, "User does not exist");
@@ -37,12 +33,14 @@ export const createNewAccessTokenWithRefreshToken = async (refreshToken: string)
 		throw new AppError(httpStatus.BAD_REQUEST, "User is deleted");
 	}
 
-	const jwtPayload = {
-		userId: isUserExist._id,
-		email: isUserExist.email,
-		role: isUserExist.role,
-	};
-	const accessToken = generateToken(jwtPayload, envVars.JWT_ACCESS_SECRET, envVars.JWT_ACCESS_EXPIRES);
+	const accessToken = generateToken(
+		{ userId: isUserExist._id, role: isUserExist.role },
+		envVars.JWT_ACCESS_SECRET,
+		envVars.JWT_ACCESS_EXPIRES,
+	);
 
 	return accessToken;
 };
+
+export const getPasswordResetSecret = (passwordHash?: string) =>
+	`${envVars.JWT_ACCESS_SECRET}.password-reset.${passwordHash ?? ""}`;
