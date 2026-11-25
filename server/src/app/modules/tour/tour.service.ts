@@ -2,11 +2,14 @@ import { deleteImageFromCLoudinary } from "../../config/cloudinary.config";
 import AppError from "../../errorHelpers/AppError";
 import { QueryBuilder } from "../../utils/QueryBuilder";
 import {
+	isTourExpired,
+	toTourStatus,
 	tourFilterableFields,
 	tourMultiValueFields,
 	tourSearchableFields,
 	tourSelectableFields,
 	tourSortableFields,
+	tourStatusFilter,
 } from "./tour.constant";
 import type { ITour, ITourType } from "./tour.interface";
 import { BOOKING_STATUS } from "../booking/booking.interface";
@@ -43,7 +46,10 @@ const getAllTours = async (query: Record<string, string>) => {
 	};
 
 	const queryBuilder = new QueryBuilder(
-		Tour.find(Object.keys(costFrom).length > 0 ? { costFrom } : {})
+		Tour.find({
+			...tourStatusFilter(toTourStatus(query.status)),
+			...(Object.keys(costFrom).length > 0 && { costFrom }),
+		})
 			.populate("division", "name slug")
 			.populate("tourType", "name")
 			.lean(),
@@ -74,6 +80,7 @@ const getAllTours = async (query: Record<string, string>) => {
 		...tour,
 		seatsLeft: tour.maxGuest ? Math.max(tour.maxGuest - (bookedSeats.get(String(tour._id)) ?? 0), 0) : null,
 		bookingsCount: bookingsByTour.get(String(tour._id)) ?? 0,
+		isExpired: isTourExpired(tour.startDate),
 	}));
 
 	return { data, meta };
@@ -85,7 +92,7 @@ interface IFilterOption {
 	count: number;
 }
 
-const getTourFilterOptions = async () => {
+const getTourFilterOptions = async (status?: string) => {
 	const countBy = (field: "division" | "tourType", from: string): PipelineStage.FacetPipelineStage[] => [
 		{ $group: { _id: `$${field}`, count: { $sum: 1 } } },
 		{ $lookup: { from, localField: "_id", foreignField: "_id", as: "ref", pipeline: [{ $project: { name: 1 } }] } },
@@ -101,6 +108,7 @@ const getTourFilterOptions = async () => {
 		price: { min: number; max: number }[];
 		total: { count: number }[];
 	}>([
+		{ $match: tourStatusFilter(toTourStatus(status)) },
 		{
 			$facet: {
 				divisions: countBy("division", Division.collection.name),
@@ -134,6 +142,8 @@ const getTrendingTours = async (limit: number) => {
 
 	const ranked = await Booking.aggregate<{ _id: Types.ObjectId; bookings: number }>([
 		{ $match: { status: BOOKING_STATUS.COMPLETE, createdAt: { $gte: since } } },
+		{ $lookup: { from: Tour.collection.name, localField: "tour", foreignField: "_id", as: "t", pipeline: [{ $project: { startDate: 1 } }] } },
+		{ $match: { "t.0": { $exists: true }, "t.startDate": { $not: { $lt: new Date() } } } },
 		{ $group: { _id: "$tour", bookings: { $sum: 1 } } },
 		{ $sort: { bookings: -1 } },
 		{ $limit: limit },
@@ -151,7 +161,7 @@ const getTrendingTours = async (limit: number) => {
 		.sort((a, b) => b.bookingsCount - a.bookingsCount);
 
 	if (tours.length < limit) {
-		const fillers = await Tour.find({ _id: { $nin: tours.map((tour) => tour._id) }, startDate: { $gte: new Date() } })
+		const fillers = await Tour.find({ _id: { $nin: tours.map((tour) => tour._id) }, ...tourStatusFilter("active") })
 			.sort("startDate")
 			.limit(limit - tours.length)
 			.select(TOUR_CARD_FIELDS)
@@ -174,6 +184,7 @@ const getSingleTour = async (slug: string) => {
 		...tour,
 		seatsBooked,
 		seatsLeft: tour.maxGuest ? Math.max(tour.maxGuest - seatsBooked, 0) : null,
+		isExpired: isTourExpired(tour.startDate),
 	};
 };
 

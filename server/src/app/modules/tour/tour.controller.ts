@@ -56,7 +56,7 @@ const deleteTour = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 const getTourFilterOptions = catchAsync(async (req: Request, res: Response) => {
-	const result = await TourService.getTourFilterOptions();
+	const result = await TourService.getTourFilterOptions(req.query.status as string | undefined);
 	res.set("Cache-Control", "public, max-age=60");
 	sendResponse(res, {
 		statusCode: 200,
