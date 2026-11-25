@@ -34,6 +34,15 @@ export const tourApi = baseApi.injectEndpoints({
 			providesTags: ["TOUR"],
 			transformResponse: (response: IResponse<ITourFilterOptions>) => response.data,
 		}),
+		getTrendingTours: builder.query<ITour[], number | void>({
+			query: (limit) => ({
+				url: "/tour/trending",
+				method: "GET",
+				params: { limit: limit ?? 4 },
+			}),
+			providesTags: ["TOUR"],
+			transformResponse: (response: IResponse<ITour[]>) => response.data,
+		}),
 		getSingleTour: builder.query<ITour, string>({
 			query: (slug) => ({
 				url: `/tour/${slug}`,
@@ -105,6 +114,7 @@ export const tourApi = baseApi.injectEndpoints({
 export const {
 	useGetTourFilterOptionsQuery,
 	useGetSingleTourQuery,
+	useGetTrendingToursQuery,
 	useGetToursQuery,
 	useRemoveTourMutation,
 	useAddTourMutation,

@@ -14,7 +14,7 @@ export default function Unauthorized() {
 			<main className="flex flex-1 flex-col items-center justify-center gap-[18px] px-4 pt-8 pb-16 text-center">
 				<div aria-hidden="true">
 					<span className="text-[120px] leading-[0.9] font-extrabold tracking-[-0.03em] text-primary sm:text-[200px]">
-						4<span className="text-[#FF7A93] dark:text-[#FF8FA6]">0</span>3
+						4<span className="text-coral">0</span>3
 					</span>
 					<svg width="120" height="40" viewBox="0 0 120 40" className="mx-auto mt-2 block">
 						<path
@@ -24,7 +24,7 @@ export default function Unauthorized() {
 							strokeWidth="3"
 							strokeLinecap="round"
 							strokeDasharray="2 9"
-							className="text-[#FF7A93] dark:text-[#FF8FA6]"
+							className="text-coral"
 						/>
 					</svg>
 				</div>

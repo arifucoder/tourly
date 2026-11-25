@@ -69,6 +69,7 @@ export default function DashboardLayout() {
 	const visibleItems = allItems.filter((item) => !item.hidden);
 	const rootUrl = visibleItems[0]?.url ?? "/";
 	const current = allItems.find((item) => matchPath({ path: item.url, end: true }, pathname));
+	const pageTitle = current?.title ?? "Page not found";
 	const { crumb, label } = consoleLabel(user?.role);
 
 	const handleLogout = async () => {
@@ -169,9 +170,9 @@ export default function DashboardLayout() {
 				<header className="flex h-16 items-center justify-between gap-3.5 border-b border-border bg-card px-4 min-[900px]:px-7">
 					<div className="min-w-0 leading-snug">
 						<span className="block text-[12.5px] text-muted-foreground">
-							{crumb} / {current?.title ?? "Dashboard"}
+							{crumb} / {pageTitle}
 						</span>
-						<strong className="block truncate text-[17px] font-semibold">{current?.title ?? "Dashboard"}</strong>
+						<strong className="block truncate text-[17px] font-semibold">{pageTitle}</strong>
 					</div>
 
 					<div className="flex items-center gap-2">

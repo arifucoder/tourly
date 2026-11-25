@@ -6,6 +6,7 @@ import About from "@/pages/About";
 import ForgotPassword from "@/pages/ForgotPassword";
 import Home from "@/pages/Home";
 import LoginPage from "@/pages/Login";
+import NotFound, { DashboardNotFound } from "@/pages/NotFound";
 import PaymentResult from "@/pages/PaymentResult";
 import RegisterPage from "@/pages/Register";
 import ResetPassword from "@/pages/ResetPassword";
@@ -39,6 +40,7 @@ export const router = createBrowserRouter([
 			{ path: "payment/success", element: <PaymentResult status="success" /> },
 			{ path: "payment/fail", element: <PaymentResult status="fail" /> },
 			{ path: "payment/cancel", element: <PaymentResult status="cancel" /> },
+			{ path: "*", Component: NotFound },
 		],
 	},
 	{
@@ -48,17 +50,22 @@ export const router = createBrowserRouter([
 			...generateRoutes(adminSidebarItems),
 			{ path: "/admin/add-tour", element: <Navigate to="/admin/tours/new" replace /> },
 			{ path: "/admin/add-division", element: <Navigate to="/admin/divisions" replace /> },
+			{ path: "*", Component: DashboardNotFound },
 		],
 	},
 	{
 		Component: withAuth(DashboardLayout, role.guide),
 		path: "/guide",
-		children: [...generateRoutes(guideSidebarItems)],
+		children: [...generateRoutes(guideSidebarItems), { path: "*", Component: DashboardNotFound }],
 	},
 	{
 		Component: withAuth(DashboardLayout, role.user),
 		path: "/user",
-		children: [{ index: true, element: <Navigate to="/user/bookings" /> }, ...generateRoutes(userSidebarItems)],
+		children: [
+			{ index: true, element: <Navigate to="/user/bookings" /> },
+			...generateRoutes(userSidebarItems),
+			{ path: "*", Component: DashboardNotFound },
+		],
 	},
 	{
 		Component: withGuest(LoginPage),
