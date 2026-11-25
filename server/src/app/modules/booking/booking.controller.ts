@@ -7,6 +7,7 @@ import { BookingService } from "./booking.service";
 import {
 	allBookingsQuerySchema,
 	assignedBookingsQuerySchema,
+	bookingExportQuerySchema,
 	bookingSummaryQuerySchema,
 	myBookingsQuerySchema,
 } from "./booking.validation";
@@ -131,7 +132,19 @@ const getAssignedBookings = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+const exportBookingsCsv = catchAsync(async (req: Request, res: Response) => {
+	const query = bookingExportQuerySchema.parse(req.query);
+	const { csv, count } = await BookingService.exportBookingsCsv(query);
+	const fileName = `tourly-bookings-${new Date().toISOString().slice(0, 10)}.csv`;
+
+	res.setHeader("Content-Type", "text/csv; charset=utf-8");
+	res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+	res.setHeader("X-Total-Count", String(count));
+	res.status(httpStatus.OK).send(csv);
+});
+
 export const BookingController = {
+	exportBookingsCsv,
 	getAvailableGuides,
 	assignGuide,
 	getAssignedBookings,

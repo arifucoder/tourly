@@ -15,5 +15,6 @@ export interface IPayment {
 	amount: number;
 	paymentGatewayData?: any;
 	invoiceUrl?: string;
+	paidAt?: Date;
 	status: PAYMENT_STATUS;
 }

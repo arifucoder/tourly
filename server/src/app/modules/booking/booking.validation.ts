@@ -25,6 +25,8 @@ export const allBookingsQuerySchema = myBookingsQuerySchema.extend({
 	to: z.coerce.date().optional(),
 });
 
+export const bookingExportQuerySchema = allBookingsQuerySchema.omit({ page: true, limit: true });
+
 export const bookingSummaryQuerySchema = allBookingsQuerySchema.pick({ from: true, to: true });
 
 export const assignGuideZodSchema = z.object({
@@ -45,3 +47,4 @@ export type TMyBookingsQuery = z.infer<typeof myBookingsQuerySchema>;
 export type TAllBookingsQuery = z.infer<typeof allBookingsQuerySchema>;
 export type TBookingSummaryQuery = z.infer<typeof bookingSummaryQuerySchema>;
 export type TAssignedBookingsQuery = z.infer<typeof assignedBookingsQuerySchema>;
+export type TBookingExportQuery = z.infer<typeof bookingExportQuerySchema>;

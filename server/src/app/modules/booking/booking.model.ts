@@ -35,6 +35,10 @@ const bookingSchema = new Schema<IBooking>(
 			type: Date,
 			default: null,
 		},
+		expiredAt: {
+			type: Date,
+			default: null,
+		},
 		status: {
 			type: String,
 			enum: Object.values(BOOKING_STATUS),
@@ -52,5 +56,6 @@ const bookingSchema = new Schema<IBooking>(
 );
 
 bookingSchema.index({ createdAt: -1 });
+bookingSchema.index({ status: 1, updatedAt: 1 });
 
 export const Booking = model<IBooking>("Booking", bookingSchema);

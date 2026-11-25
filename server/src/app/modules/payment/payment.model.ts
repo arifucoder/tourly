@@ -29,6 +29,10 @@ const paymentSchema = new Schema<IPayment>(
 		invoiceUrl: {
 			type: String,
 		},
+		paidAt: {
+			type: Date,
+			index: true,
+		},
 	},
 	{
 		timestamps: true,

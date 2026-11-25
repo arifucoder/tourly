@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import app from "./app";
 import { envVars } from "./app/config/env";
 import { connectRedis } from "./app/config/redis.config";
+import { startExpirePendingBookingsJob, stopExpirePendingBookingsJob } from "./app/jobs/expirePendingBookings";
 
 let server: Server;
 
@@ -17,6 +18,8 @@ const startServer = async () => {
 		server = app.listen(PORT, () => {
 			console.log(`Server is listening to port ${PORT}`);
 		});
+
+		startExpirePendingBookingsJob();
 	} catch (error) {
 		console.error("Failed to start server", error);
 		process.exit(1);
@@ -26,6 +29,7 @@ const startServer = async () => {
 startServer();
 
 process.on("SIGTERM", () => {
+	stopExpirePendingBookingsJob();
 	console.log("SIGTERM signal recieved... Server shutting down..");
 
 	if (server) {
@@ -38,6 +42,7 @@ process.on("SIGTERM", () => {
 });
 
 process.on("SIGINT", () => {
+	stopExpirePendingBookingsJob();
 	console.log("SIGINT signal recieved... Server shutting down..");
 
 	if (server) {

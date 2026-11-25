@@ -1,6 +1,10 @@
 import crypto from "crypto";
 import { BOOKING_STATUS } from "./booking.interface";
 
+export const PAYMENT_HOLD_MINUTES = 30;
+
+export const paymentHoldCutoff = () => new Date(Date.now() - PAYMENT_HOLD_MINUTES * 60 * 1000);
+
 export const ADMIN_STATUS_TRANSITIONS: Record<BOOKING_STATUS, BOOKING_STATUS[]> = {
 	[BOOKING_STATUS.PENDING]: [BOOKING_STATUS.CANCEL],
 	[BOOKING_STATUS.COMPLETE]: [BOOKING_STATUS.CANCEL],

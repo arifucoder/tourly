@@ -14,6 +14,7 @@ export interface IBooking {
 	payment?: Types.ObjectId;
 	guide?: Types.ObjectId | null;
 	guideAssignedAt?: Date | null;
+	expiredAt?: Date | null;
 	guestCount: number;
 	status: BOOKING_STATUS;
 	createdAt?: Date;

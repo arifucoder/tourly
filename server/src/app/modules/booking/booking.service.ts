@@ -10,12 +10,13 @@ import { GUIDE_APPLICATION_STATUS } from "../guideApplication/guideApplication.i
 import { GuideApplication } from "../guideApplication/guideApplication.model";
 import { IsActive, Role } from "../user/user.interface";
 import { User } from "../user/user.model";
-import { ADMIN_STATUS_TRANSITIONS } from "./booking.constant";
+import { ADMIN_STATUS_TRANSITIONS, paymentHoldCutoff } from "./booking.constant";
 import { BOOKING_STATUS } from "./booking.interface";
 import { Booking } from "./booking.model";
 import type {
 	TAllBookingsQuery,
 	TAssignedBookingsQuery,
+	TBookingExportQuery,
 	TBookingSummaryQuery,
 	TCreateBookingPayload,
 	TMyBookingsQuery,
@@ -45,6 +46,22 @@ const buildDateFilter = (from?: Date, to?: Date) => {
 	return { createdAt };
 };
 
+export const countBookedSeats = async (tourId: Types.ObjectId | string) => {
+	const [result] = await Booking.aggregate<{ seats: number }>([
+		{
+			$match: {
+				tour: new Types.ObjectId(String(tourId)),
+				$or: [
+					{ status: BOOKING_STATUS.COMPLETE },
+					{ status: BOOKING_STATUS.PENDING, updatedAt: { $gte: paymentHoldCutoff() } },
+				],
+			},
+		},
+		{ $group: { _id: null, seats: { $sum: "$guestCount" } } },
+	]);
+	return result?.seats ?? 0;
+};
+
 const createBooking = async (payload: TCreateBookingPayload, userId: string) => {
 	const user = await User.findById(userId);
 
@@ -63,8 +80,14 @@ const createBooking = async (payload: TCreateBookingPayload, userId: string) => 
 	if (tour.startDate && tour.startDate < new Date()) {
 		throw new AppError(httpStatus.BAD_REQUEST, "This tour has already started.");
 	}
-	if (tour.maxGuest && payload.guestCount > tour.maxGuest) {
-		throw new AppError(httpStatus.BAD_REQUEST, `This tour allows at most ${tour.maxGuest} guests per booking.`);
+	if (tour.maxGuest) {
+		const seatsLeft = tour.maxGuest - (await countBookedSeats(tour._id));
+		if (payload.guestCount > seatsLeft) {
+			throw new AppError(
+				httpStatus.BAD_REQUEST,
+				seatsLeft > 0 ? `Only ${seatsLeft} seat(s) left on this tour.` : "This tour is fully booked.",
+			);
+		}
 	}
 
 	const amount = tour.costFrom * payload.guestCount;
@@ -215,7 +238,7 @@ const getBookingById = async (bookingId: string, authUser: IAuthUser) => {
 	return booking;
 };
 
-const getAllBookings = async (query: TAllBookingsQuery) => {
+const buildAdminBookingsPipeline = (query: TBookingExportQuery): PipelineStage[] => {
 	const match: Record<string, unknown> = {
 		...buildDateFilter(query.from, query.to),
 		...(query.status && { status: query.status }),
@@ -280,6 +303,12 @@ const getAllBookings = async (query: TAllBookingsQuery) => {
 		pipeline.push({ $match: { $or: or } });
 	}
 
+	return pipeline;
+};
+
+const getAllBookings = async (query: TAllBookingsQuery) => {
+	const pipeline = buildAdminBookingsPipeline(query);
+
 	const skip = (query.page - 1) * query.limit;
 
 	pipeline.push(
@@ -299,6 +328,72 @@ const getAllBookings = async (query: TAllBookingsQuery) => {
 		data: result?.data ?? [],
 		meta: { page: query.page, limit: query.limit, total, totalPage: Math.ceil(total / query.limit) },
 	};
+};
+
+const CSV_EXPORT_LIMIT = 5000;
+
+const csvCell = (value: unknown) => {
+	let text = value === null || value === undefined ? "" : String(value);
+	if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+	return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+};
+
+const formatDate = (value?: Date) => (value ? new Date(value).toISOString().slice(0, 10) : "");
+
+const exportBookingsCsv = async (query: TBookingExportQuery) => {
+	const pipeline = buildAdminBookingsPipeline(query);
+	pipeline.push({ $sort: { createdAt: -1 } }, { $limit: CSV_EXPORT_LIMIT });
+
+	const rows = await Booking.aggregate<{
+		bookingCode?: string;
+		createdAt?: Date;
+		status: string;
+		guestCount: number;
+		user: { name: string; email: string; phone?: string };
+		tour: { title: string; startDate?: Date; endDate?: Date };
+		payment?: { transactionId: string; amount: number; status: string };
+		guide?: { name: string };
+	}>(pipeline);
+
+	const header = [
+		"Booking code",
+		"Created",
+		"Status",
+		"Traveller",
+		"Email",
+		"Phone",
+		"Tour",
+		"Trip start",
+		"Trip end",
+		"Guests",
+		"Amount (BDT)",
+		"Payment status",
+		"Transaction ID",
+		"Guide",
+	];
+
+	const lines = rows.map((row) =>
+		[
+			row.bookingCode,
+			formatDate(row.createdAt),
+			row.status,
+			row.user.name,
+			row.user.email,
+			row.user.phone,
+			row.tour.title,
+			formatDate(row.tour.startDate),
+			formatDate(row.tour.endDate),
+			row.guestCount,
+			row.payment?.amount,
+			row.payment?.status,
+			row.payment?.transactionId,
+			row.guide?.name,
+		]
+			.map(csvCell)
+			.join(","),
+	);
+
+	return { csv: `\uFEFF${[header.join(","), ...lines].join("\r\n")}`, count: rows.length };
 };
 
 const getBookingSummary = async (query: TBookingSummaryQuery) => {
@@ -577,7 +672,31 @@ const getAssignedBookings = async (guideId: string, query: TAssignedBookingsQuer
 	};
 };
 
+const expireStalePendingBookings = async () => {
+	const stale = await Booking.find({ status: BOOKING_STATUS.PENDING, updatedAt: { $lt: paymentHoldCutoff() } })
+		.select("_id")
+		.limit(500)
+		.lean();
+
+	if (stale.length === 0) return 0;
+
+	const ids = stale.map((booking) => booking._id);
+	const now = new Date();
+
+	await Promise.all([
+		Booking.updateMany(
+			{ _id: { $in: ids }, status: BOOKING_STATUS.PENDING },
+			{ status: BOOKING_STATUS.CANCEL, expiredAt: now },
+		),
+		Payment.updateMany({ booking: { $in: ids }, status: PAYMENT_STATUS.UNPAID }, { status: PAYMENT_STATUS.CANCELLED }),
+	]);
+
+	return ids.length;
+};
+
 export const BookingService = {
+	expireStalePendingBookings,
+	exportBookingsCsv,
 	getAvailableGuides,
 	assignGuide,
 	getAssignedBookings,

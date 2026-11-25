@@ -7,9 +7,11 @@ import { generatePdf, type IInvoiceData } from "../../utils/invoice";
 import { sendEmail } from "../../utils/sendEmail";
 import { BOOKING_STATUS } from "../booking/booking.interface";
 import { Booking } from "../booking/booking.model";
+import { countBookedSeats } from "../booking/booking.service";
 import type { ISSLValidationResponse } from "../sslCommerz/sslCommerz.interface";
 import { SSLService } from "../sslCommerz/sslCommerz.service";
 import type { ITour } from "../tour/tour.interface";
+import { Tour } from "../tour/tour.model";
 import { Role, type IUser } from "../user/user.interface";
 import { PAYMENT_STATUS } from "./payment.interface";
 import { Payment } from "./payment.model";
@@ -27,8 +29,19 @@ const initPayment = async (bookingId: string, userId: string) => {
 	if (!booking) {
 		throw new AppError(httpStatus.NOT_FOUND, "Booking not found.");
 	}
-	if (booking.status !== BOOKING_STATUS.PENDING && booking.status !== BOOKING_STATUS.FAILED) {
+	const isExpiredHold = booking.status === BOOKING_STATUS.CANCEL && Boolean(booking.expiredAt);
+	if (booking.status !== BOOKING_STATUS.PENDING && booking.status !== BOOKING_STATUS.FAILED && !isExpiredHold) {
 		throw new AppError(httpStatus.BAD_REQUEST, `A ${booking.status} booking cannot be paid.`);
+	}
+
+	if (booking.status !== BOOKING_STATUS.PENDING) {
+		const tour = await Tour.findById(booking.tour).select("maxGuest startDate").lean();
+		if (tour?.startDate && tour.startDate < new Date()) {
+			throw new AppError(httpStatus.BAD_REQUEST, "This tour has already started.");
+		}
+		if (tour?.maxGuest && booking.guestCount > tour.maxGuest - (await countBookedSeats(booking.tour))) {
+			throw new AppError(httpStatus.BAD_REQUEST, "Not enough seats left on this tour any more.");
+		}
 	}
 
 	const payment = await Payment.findOne({ booking: booking._id });
@@ -54,7 +67,7 @@ const initPayment = async (bookingId: string, userId: string) => {
 			{ transactionId, status: PAYMENT_STATUS.UNPAID },
 			{ runValidators: true, session },
 		);
-		await Booking.updateOne({ _id: booking._id }, { status: BOOKING_STATUS.PENDING }, { session });
+		await Booking.updateOne({ _id: booking._id }, { status: BOOKING_STATUS.PENDING, expiredAt: null }, { session });
 
 		const paymentUrl = await SSLService.sslPaymentInit({
 			name,
@@ -126,7 +139,11 @@ const confirmPayment = async ({ transactionId, valId }: { transactionId?: string
 	if (payment.status === PAYMENT_STATUS.PAID) {
 		return { transactionId, amount: payment.amount, alreadyPaid: true };
 	}
-	if (payment.status !== PAYMENT_STATUS.UNPAID) {
+
+	const booking = await Booking.findById(payment.booking).select("expiredAt").lean();
+	const paidAfterHoldExpired = payment.status === PAYMENT_STATUS.CANCELLED && Boolean(booking?.expiredAt);
+
+	if (payment.status !== PAYMENT_STATUS.UNPAID && !paidAfterHoldExpired) {
 		throw new AppError(httpStatus.BAD_REQUEST, "This payment is no longer active.");
 	}
 
@@ -141,8 +158,8 @@ const confirmPayment = async ({ transactionId, valId }: { transactionId?: string
 
 	try {
 		const updated = await Payment.updateOne(
-			{ _id: payment._id, status: PAYMENT_STATUS.UNPAID },
-			{ status: PAYMENT_STATUS.PAID, paymentGatewayData: gateway },
+			{ _id: payment._id, status: { $in: [PAYMENT_STATUS.UNPAID, PAYMENT_STATUS.CANCELLED] } },
+			{ status: PAYMENT_STATUS.PAID, paymentGatewayData: gateway, paidAt: new Date() },
 			{ session },
 		);
 
@@ -151,7 +168,11 @@ const confirmPayment = async ({ transactionId, valId }: { transactionId?: string
 			return { transactionId, amount: payment.amount, alreadyPaid: true };
 		}
 
-		await Booking.updateOne({ _id: payment.booking }, { status: BOOKING_STATUS.COMPLETE }, { session });
+		await Booking.updateOne(
+			{ _id: payment.booking },
+			{ status: BOOKING_STATUS.COMPLETE, expiredAt: null },
+			{ session },
+		);
 		await session.commitTransaction();
 	} catch (error) {
 		await session.abortTransaction();

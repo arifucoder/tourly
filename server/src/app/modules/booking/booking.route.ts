@@ -15,6 +15,7 @@ router.post("/", checkAuth(...allRoles), validateRequest(createBookingZodSchema)
 
 router.get("/", checkAuth(...adminRoles), BookingController.getAllBookings);
 router.get("/summary", checkAuth(...adminRoles), BookingController.getBookingSummary);
+router.get("/export", checkAuth(...adminRoles), BookingController.exportBookingsCsv);
 
 router.get("/my-bookings", checkAuth(...allRoles), BookingController.getUserBookings);
 router.get("/my-bookings/summary", checkAuth(...allRoles), BookingController.getUserBookingSummary);
