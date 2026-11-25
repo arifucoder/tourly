@@ -4,17 +4,17 @@ import RegistrationForm from "@/components/modules/Authentication/RegistrationFo
 
 export default function RegisterPage() {
 	return (
-		<div className="grid min-h-screen bg-white lg:grid-cols-2">
+		<div className="grid min-h-screen bg-background lg:grid-cols-2">
 			<div className="relative hidden p-4 lg:block">
-				<div className="relative h-full overflow-hidden rounded-3xl bg-slate-300">
+				<div className="relative h-full overflow-hidden rounded-3xl bg-placeholder">
 					<img src={heroImage} alt="Inani Beach, Cox's Bazar" className="absolute inset-0 h-full w-full object-cover" />
 					<div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/10 to-transparent" />
 
-					<div className="absolute left-8 top-8 rounded-full bg-white/90 px-3 py-1.5 backdrop-blur">
+					<div className="absolute left-8 top-8 rounded-full bg-card/90 px-3 py-1.5 backdrop-blur">
 						<Logo />
 					</div>
 
-					<span className="absolute right-6 top-8 rounded bg-slate-800/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
+					<span className="absolute right-6 top-8 rounded bg-black/60 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
 						Photo · Inani Beach, Cox&apos;s Bazar
 					</span>
 

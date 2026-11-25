@@ -1,24 +1,20 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import AuthCardLayout from "@/components/layout/AuthCardLayout";
+import { authLink, authPrimaryBtn, authTitle } from "@/components/modules/Authentication/authStyles";
+import IconBubble from "@/components/modules/Authentication/IconBubble";
+import OtpInput from "@/components/modules/Authentication/OtpInput";
 import { useSendOtpMutation, useVerifyOtpMutation } from "@/redux/features/auth/auth.api";
 import type { TApiError } from "@/types";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Dot } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { useLocation, useNavigate } from "react-router";
+import { AlertCircle, AlertTriangle, Clock, Loader2, Mail } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Link, Navigate, useLocation, useNavigate } from "react-router";
 import { toast } from "sonner";
-import z from "zod";
 
-const RESEND_TIME = 120;
+const CODE_LENGTH = 6;
+const EXPIRES_IN = 120;
+const RESEND_AFTER = 60;
 
-const FormSchema = z.object({
-	pin: z.string().length(6, { error: "Your one-time password must be 6 characters." }),
-});
-
-type FormValues = z.infer<typeof FormSchema>;
+const formatTime = (seconds: number) =>
+	`${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 
 const getErrorMessage = (err: unknown, fallback: string) => {
 	const error = err as TApiError;
@@ -32,122 +28,161 @@ export default function Verify() {
 
 	const [sendOtp, { isLoading: isSending }] = useSendOtpMutation();
 	const [verifyOtp, { isLoading: isVerifying }] = useVerifyOtpMutation();
-	const [timer, setTimer] = useState(0);
 
+	const [code, setCode] = useState("");
+	const [wrongCode, setWrongCode] = useState(false);
+	const [expiresLeft, setExpiresLeft] = useState(0);
+	const [resendLeft, setResendLeft] = useState(0);
+	const [sentOnce, setSentOnce] = useState(false);
 	const hasSentRef = useRef(false);
 
-	const form = useForm<FormValues>({
-		resolver: zodResolver(FormSchema),
-		defaultValues: { pin: "" },
-	});
+	const expired = sentOnce && expiresLeft <= 0;
 
-	const handleSendOtp = async () => {
+	const handleSend = async () => {
 		if (!email) return;
-		const toastId = toast.loading("Sending OTP...");
-
 		try {
 			await sendOtp({ email }).unwrap();
-			toast.success("OTP sent to your email", { id: toastId });
-			setTimer(RESEND_TIME);
+			setCode("");
+			setWrongCode(false);
+			setExpiresLeft(EXPIRES_IN);
+			setResendLeft(RESEND_AFTER);
+			setSentOnce(true);
+			toast.success("We sent a new code to your email");
 		} catch (err) {
-			toast.error(getErrorMessage(err, "Failed to send OTP"), { id: toastId });
+			toast.error(getErrorMessage(err, "Couldn't send the code. Please try again."));
 		}
 	};
-
-	const onSubmit = async (data: FormValues) => {
-		if (!email) return;
-
-		const toastId = toast.loading("Verifying OTP...");
-
-		try {
-			await verifyOtp({ email, otp: data.pin }).unwrap();
-			toast.success("Email verified! Please log in.", { id: toastId });
-			navigate("/login");
-		} catch (err) {
-			toast.error(getErrorMessage(err, "Invalid OTP"), { id: toastId });
-		}
-	};
-
-	useEffect(() => {
-		if (!email) navigate("/");
-	}, [email, navigate]);
 
 	useEffect(() => {
 		if (!email || hasSentRef.current) return;
 		hasSentRef.current = true;
-		handleSendOtp();
+		handleSend();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [email]);
 
 	useEffect(() => {
-		if (timer <= 0) return;
-		const id = setTimeout(() => setTimer((t) => t - 1), 1000);
+		if (expiresLeft <= 0 && resendLeft <= 0) return;
+		const id = setTimeout(() => {
+			setExpiresLeft((t) => Math.max(0, t - 1));
+			setResendLeft((t) => Math.max(0, t - 1));
+		}, 1000);
 		return () => clearTimeout(id);
-	}, [timer]);
+	}, [expiresLeft, resendLeft]);
+
+	if (!email) return <Navigate to="/login" replace />;
+
+	const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+		e.preventDefault();
+		if (code.length !== CODE_LENGTH) return;
+		try {
+			await verifyOtp({ email, otp: code }).unwrap();
+			toast.success("Email verified! Please log in.");
+			navigate("/login", { replace: true });
+		} catch {
+			setWrongCode(true);
+		}
+	};
+
+	const handleCodeChange = (value: string) => {
+		setCode(value);
+		setWrongCode(false);
+	};
+
+	if (expired) {
+		return (
+			<AuthCardLayout>
+				<IconBubble tone="warning">
+					<Clock />
+				</IconBubble>
+				<div className="flex flex-col gap-1.5">
+					<h1 className={authTitle}>This code has expired</h1>
+					<p className="text-[15px] text-muted-foreground">
+						Codes are valid for 2 minutes. Request a new one and we'll send it to{" "}
+						<strong className="text-foreground">{email}</strong>.
+					</p>
+				</div>
+				<fieldset disabled className="m-0 border-0 p-0">
+					<legend className="mb-1.5 text-sm font-semibold text-muted-foreground">Verification code</legend>
+					<OtpInput value="" onChange={() => undefined} disabled />
+				</fieldset>
+				<div className="flex items-start gap-2.5 rounded-xl bg-warning-soft px-3.5 py-3 text-sm text-warning">
+					<AlertTriangle className="mt-px size-4.5 shrink-0" />
+					Too many wrong attempts also expire a code.
+				</div>
+				<button type="button" onClick={handleSend} disabled={isSending} className={authPrimaryBtn}>
+					{isSending && <Loader2 className="size-4.5 animate-spin" />}
+					Send a new code
+				</button>
+				<Link to="/login" className={`${authLink} text-center text-[14.5px]`}>
+					Back to log in
+				</Link>
+			</AuthCardLayout>
+		);
+	}
 
 	return (
-		<div className="grid h-screen place-content-center px-4">
-			<Card className="w-full max-w-sm">
-				<CardHeader>
-					<CardTitle className="text-xl">Verify your email address</CardTitle>
-					<CardDescription>
-						Please enter the 6-digit code we sent to <br />
-						<span className="font-medium text-slate-900">{email}</span>
-					</CardDescription>
-				</CardHeader>
+		<AuthCardLayout>
+			<form onSubmit={handleSubmit} className="flex flex-col gap-4.5">
+				<IconBubble tone="primary">
+					<Mail />
+				</IconBubble>
+				<div className="flex flex-col gap-1.5">
+					<h1 className={authTitle}>Check your inbox</h1>
+					<p className="text-[15px] text-muted-foreground">
+						We sent a 6-digit code to <strong className="text-foreground">{email}</strong>.{" "}
+						<Link to="/signup" className={authLink}>
+							Change
+						</Link>
+					</p>
+				</div>
 
-				<CardContent>
-					<form id="otp-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-						<Controller
-							control={form.control}
-							name="pin"
-							render={({ field, fieldState }) => (
-								<Field data-invalid={fieldState.invalid}>
-									<FieldLabel htmlFor="otp-pin">One-Time Password</FieldLabel>
-									<InputOTP id="otp-pin" maxLength={6} {...field} aria-invalid={fieldState.invalid}>
-										<InputOTPGroup>
-											<InputOTPSlot index={0} />
-											<InputOTPSlot index={1} />
-											<InputOTPSlot index={2} />
-										</InputOTPGroup>
-										<Dot />
-										<InputOTPGroup>
-											<InputOTPSlot index={3} />
-											<InputOTPSlot index={4} />
-											<InputOTPSlot index={5} />
-										</InputOTPGroup>
-									</InputOTP>
+				<fieldset className="m-0 border-0 p-0">
+					<legend className="mb-1.5 text-sm font-semibold">Verification code</legend>
+					<OtpInput value={code} onChange={handleCodeChange} invalid={wrongCode} />
+				</fieldset>
 
-									<FieldDescription>
-										Didn&apos;t get the code?{" "}
-										{timer > 0 ? (
-											<span className="text-slate-500">Resend in {timer}s</span>
-										) : (
-											<Button
-												type="button"
-												variant="link"
-												onClick={handleSendOtp}
-												disabled={isSending}
-												className="h-auto p-0"
-											>
-												Resend OTP
-											</Button>
-										)}
-									</FieldDescription>
+				{wrongCode && (
+					<div role="alert" className="flex items-start gap-2.5 rounded-xl bg-destructive-soft px-3.5 py-3 text-sm text-destructive">
+						<AlertCircle className="mt-px size-4.5 shrink-0" strokeWidth={2.2} />
+						<div>
+							<strong>That code isn't right.</strong>
+							<br />
+							Check the email and try again, or request a new code.
+						</div>
+					</div>
+				)}
 
-									{fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-								</Field>
-							)}
-						/>
-					</form>
-				</CardContent>
+				{sentOnce && (
+					<div className="flex items-center gap-2.5 rounded-xl bg-surface-2 px-3.5 py-3">
+						<Clock className="size-4.5 text-primary" />
+						<span className="text-sm">
+							Code expires in <strong className="text-base">{formatTime(expiresLeft)}</strong>
+						</span>
+					</div>
+				)}
 
-				<CardFooter>
-					<Button form="otp-form" type="submit" className="w-full" disabled={isVerifying}>
-						{isVerifying ? "Verifying..." : "Verify"}
-					</Button>
-				</CardFooter>
-			</Card>
-		</div>
+				<button
+					type="submit"
+					disabled={code.length !== CODE_LENGTH || isVerifying}
+					className={`${authPrimaryBtn} disabled:opacity-45`}
+				>
+					{isVerifying && <Loader2 className="size-4.5 animate-spin" />}
+					{wrongCode ? "Try again" : "Verify email"}
+				</button>
+
+				<p className="text-center text-[14.5px] text-muted-foreground">
+					Didn't get it?{" "}
+					{resendLeft > 0 || isSending ? (
+						<span className="font-semibold">
+							{isSending ? "Sending…" : `Resend in ${Math.floor(resendLeft / 60)}:${String(resendLeft % 60).padStart(2, "0")}`}
+						</span>
+					) : (
+						<button type="button" onClick={handleSend} className={authLink}>
+							Resend code
+						</button>
+					)}
+				</p>
+			</form>
+		</AuthCardLayout>
 	);
 }
