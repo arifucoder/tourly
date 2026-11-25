@@ -2,8 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useGetToursQuery } from "@/redux/features/Tour/tour.api";
-import type { ITour } from "@/types";
+import { useGetTourFilterOptionsQuery, useGetToursQuery } from "@/redux/features/Tour/tour.api";
+import type { ITour, ITourFilterOption } from "@/types";
 import {
 	AlertCircle,
 	ChevronLeft,
@@ -15,7 +15,7 @@ import {
 	SearchX,
 	SlidersHorizontal,
 } from "lucide-react";
-import { useMemo, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link } from "react-router";
 
 const LIMIT = 12;
@@ -58,26 +58,13 @@ const getPageNumbers = (current: number, total: number): (number | "…")[] => {
 	return pages;
 };
 
-type TFilterOption = { _id: string; name: string; count: number };
-
-const buildOptions = (tours: ITour[], key: "division" | "tourType"): TFilterOption[] => {
-	const map = new Map<string, TFilterOption>();
-	tours.forEach((tour) => {
-		const item = tour[key];
-		if (!item?._id) return;
-		const existing = map.get(item._id);
-		if (existing) existing.count += 1;
-		else map.set(item._id, { _id: item._id, name: item.name, count: 1 });
-	});
-	return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
-};
 
 const selectCls =
 	"h-11.5 w-full rounded-lg border-[1.5px] border-border bg-background px-3.5 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 type FiltersProps = {
-	divisions: TFilterOption[];
-	tourTypes: TFilterOption[];
+	divisions: ITourFilterOption[];
+	tourTypes: ITourFilterOption[];
 	totalTours: number;
 	division: string;
 	tourType: string;
@@ -189,16 +176,10 @@ export default function Tours() {
 
 	const { data, isLoading, isError, isFetching, refetch } = useGetToursQuery(params);
 
-	const { data: optionData } = useGetToursQuery({ limit: 1000, fields: "division,tourType" });
-
-	const { divisions, tourTypes, totalTours } = useMemo(() => {
-		const all = optionData?.data ?? [];
-		return {
-			divisions: buildOptions(all, "division"),
-			tourTypes: buildOptions(all, "tourType"),
-			totalTours: all.length,
-		};
-	}, [optionData]);
+	const { data: filterOptions } = useGetTourFilterOptionsQuery();
+	const divisions = filterOptions?.divisions ?? [];
+	const tourTypes = filterOptions?.tourTypes ?? [];
+	const totalTours = filterOptions?.totalTours ?? 0;
 
 	const tours = data?.data ?? [];
 	const total = data?.meta?.total ?? 0;

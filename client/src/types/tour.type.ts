@@ -35,3 +35,15 @@ export interface ITour {
 	createdAt?: string;
 	updatedAt?: string;
 }
+
+export interface ITourFilterOption {
+	_id: string;
+	name: string;
+	count: number;
+}
+
+export interface ITourFilterOptions {
+	divisions: ITourFilterOption[];
+	tourTypes: ITourFilterOption[];
+	totalTours: number;
+}
