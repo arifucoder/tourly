@@ -8,14 +8,14 @@ const footerSections = [
 		title: "Explore",
 		links: [
 			{ label: "All tours", href: "/tours" },
-			{ label: "Divisions", href: "/divisions" },
+			{ label: "Divisions", href: "/#divisions" },
 		],
 	},
 	{
 		title: "Company",
 		links: [
 			{ label: "About us", href: "/about" },
-			{ label: "Become a guide", href: "/become-a-guide" },
+			{ label: "Become a guide", href: "/user/become-a-guide" },
 		],
 	},
 	{

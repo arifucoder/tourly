@@ -1,7 +1,7 @@
 import heroImage from "@/assets/images/auth/inani-beach.jpeg";
 import { btnOrange, container, SectionHead, sectionTop } from "@/components/modules/Home/shared";
+import { ContactCard } from "@/components/modules/Info/InfoBlocks";
 import { Skeleton } from "@/components/ui/skeleton";
-import { siteContact } from "@/constants/site";
 import { formatNumber } from "@/lib/format";
 import { useGetPublicStatsQuery } from "@/redux/features/Stats/stats.api";
 import { useGetTrendingToursQuery } from "@/redux/features/Tour/tour.api";
@@ -12,9 +12,6 @@ import {
 	HandCoins,
 	HeartHandshake,
 	Leaf,
-	Mail,
-	MapPin,
-	Phone,
 	Search,
 	ShieldCheck,
 	UsersRound,
@@ -67,11 +64,6 @@ const steps = [
 	},
 ];
 
-const contacts = [
-	{ icon: Mail, label: "Email", value: siteContact.email, href: `mailto:${siteContact.email}` },
-	{ icon: Phone, label: "Phone", value: siteContact.phoneLabel, href: `tel:${siteContact.phone}` },
-	{ icon: MapPin, label: "Office", value: "Dhaka, Bangladesh", href: siteContact.mapUrl, external: true },
-];
 
 function Intro() {
 	const { data: stats, isLoading } = useGetPublicStatsQuery();
@@ -228,33 +220,7 @@ function GuideAndContact() {
 					</Link>
 				</div>
 
-				<div className="flex flex-col gap-5 rounded-2xl bg-card p-6 shadow-card sm:p-8">
-					<div className="flex flex-col gap-1.5">
-						<h2 className="text-[22px] font-bold">Get in touch</h2>
-						<p className="text-[13.5px] text-muted-foreground">Questions about a trip? We reply within a day.</p>
-					</div>
-					<ul className="flex flex-col gap-3">
-						{contacts.map(({ icon: Icon, label, value, href, external }) => (
-							<li key={label}>
-								<a
-									href={href}
-									{...(external && { target: "_blank", rel: "noreferrer" })}
-									className="group flex items-center gap-3.5 rounded-xl border border-border p-3.5 transition-colors hover:border-primary"
-								>
-									<span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent text-primary-hover">
-										<Icon className="size-4.5" />
-									</span>
-									<span className="min-w-0 leading-tight">
-										<span className="block text-[12px] text-muted-foreground">{label}</span>
-										<span className="block truncate text-[14.5px] font-semibold group-hover:text-primary-text">
-											{value}
-										</span>
-									</span>
-								</a>
-							</li>
-						))}
-					</ul>
-				</div>
+				<ContactCard />
 			</div>
 		</section>
 	);

@@ -3,6 +3,9 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 
 import { role } from "@/constants/role";
 import About from "@/pages/About";
+import CancellationPolicy from "@/pages/CancellationPolicy";
+import Help from "@/pages/Help";
+import Terms from "@/pages/Terms";
 import ForgotPassword from "@/pages/ForgotPassword";
 import Home from "@/pages/Home";
 import LoginPage from "@/pages/Login";
@@ -35,6 +38,9 @@ export const router = createBrowserRouter([
 				Component: About,
 				path: "about",
 			},
+			{ Component: Help, path: "help" },
+			{ Component: CancellationPolicy, path: "cancellation-policy" },
+			{ Component: Terms, path: "terms" },
 			{ Component: Tours, path: "tours" },
 			{ Component: TourDetails, path: "tours/:slug" },
 			{ path: "payment/success", element: <PaymentResult status="success" /> },
