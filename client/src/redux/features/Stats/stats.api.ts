@@ -1,8 +1,21 @@
 import { baseApi } from "@/redux/baseApi";
-import type { IBookingStats, IDashboardStats, IPaymentStats, IResponse, ITourStats, IUserStats } from "@/types";
+import type {
+	IBookingStats,
+	IDashboardStats,
+	IPaymentStats,
+	IPublicStats,
+	IResponse,
+	ITourStats,
+	IUserStats,
+} from "@/types";
 
 export const statsApi = baseApi.injectEndpoints({
 	endpoints: (builder) => ({
+		getPublicStats: builder.query<IPublicStats, void>({
+			query: () => ({ url: "/stats/public", method: "GET" }),
+			providesTags: ["TOUR"],
+			transformResponse: (response: IResponse<IPublicStats>) => response.data,
+		}),
 		getDashboardStats: builder.query<IDashboardStats, 7 | 14 | 30>({
 			query: (days) => ({ url: "/stats/dashboard", method: "GET", params: { days } }),
 			providesTags: ["STATS", "BOOKING"],
@@ -37,4 +50,5 @@ export const {
 	useGetPaymentStatsQuery,
 	useGetUserStatsQuery,
 	useGetTourStatsQuery,
+	useGetPublicStatsQuery,
 } = statsApi;

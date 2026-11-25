@@ -236,3 +236,10 @@ export interface IMe {
 	signInMethods: ("google" | "credentials")[];
 	createdAt?: string;
 }
+
+export interface IPublicStats {
+	tours: number;
+	divisions: number;
+	departuresThisMonth: number;
+	maxGroupSize: number | null;
+}

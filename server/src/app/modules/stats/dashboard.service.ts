@@ -5,6 +5,7 @@ import { Payment } from "../payment/payment.model";
 import { Tour, TourType } from "../tour/tour.model";
 import { Role } from "../user/user.interface";
 import { User } from "../user/user.model";
+import { tourStatusFilter } from "../tour/tour.constant";
 
 const TIME_ZONE = "Asia/Dhaka";
 const TZ_OFFSET_MS = 6 * 60 * 60 * 1000;
@@ -154,11 +155,12 @@ export const getPublicStats = async () => {
 	const monthStart = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), 1) - TZ_OFFSET_MS);
 	const nextMonthStart = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth() + 1, 1) - TZ_OFFSET_MS);
 
+	const active = tourStatusFilter("active", now);
 	const [tours, divisionsWithTours, departuresThisMonth, largestGroup] = await Promise.all([
-		Tour.countDocuments(),
-		Tour.distinct("division"),
-		Tour.countDocuments({ startDate: { $gte: monthStart, $lt: nextMonthStart } }),
-		Tour.findOne({ maxGuest: { $gt: 0 } }).sort("-maxGuest").select("maxGuest").lean(),
+		Tour.countDocuments(active),
+		Tour.distinct("division", active),
+		Tour.countDocuments({ startDate: { $gte: now > monthStart ? now : monthStart, $lt: nextMonthStart } }),
+		Tour.findOne({ ...active, maxGuest: { $gt: 0 } }).sort("-maxGuest").select("maxGuest").lean(),
 	]);
 
 	return {

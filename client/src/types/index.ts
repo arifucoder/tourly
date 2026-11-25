@@ -11,6 +11,7 @@ export type {
 	IBookingDetail,
 	IBookingStats,
 	IDashboardStats,
+	IPublicStats,
 	IGuideApplication,
 	IMe,
 	IMyBooking,
