@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:24-alpine AS build
+FROM node:24-alpine AS deps
 ENV PNPM_HOME=/pnpm \
 	PATH=/pnpm:$PATH \
 	COREPACK_ENABLE_DOWNLOAD_PROMPT=0
@@ -8,6 +8,8 @@ RUN corepack enable && corepack prepare pnpm@10 --activate
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lockfile
+
+FROM deps AS build
 COPY . .
 # Vite bakes env vars into the bundle at build time
 ARG VITE_BASE_URL
