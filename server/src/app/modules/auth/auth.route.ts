@@ -6,17 +6,33 @@ import { validateRequest } from "../../middlewares/validateRequest";
 import { Role } from "../user/user.interface";
 import { createOAuthState, verifyOAuthState } from "../../utils/oauthState";
 import { AuthController } from "./auth.controller";
-import { forgotPasswordZodSchema, loginZodSchema } from "./auth.validation";
+import {
+	changePasswordZodSchema,
+	forgotPasswordZodSchema,
+	loginZodSchema,
+	resetPasswordZodSchema,
+	setPasswordZodSchema,
+} from "./auth.validation";
 
 const router = Router();
 
 router.post("/login", validateRequest(loginZodSchema), AuthController.credentialLogin);
 router.post("/refresh-token", AuthController.getNewAccessToken);
 router.post("/logout", AuthController.logout);
-router.post("/change-password", checkAuth(...Object.values(Role)), AuthController.changePassword);
-router.post("/set-password", checkAuth(...Object.values(Role)), AuthController.setPassword);
+router.post(
+	"/change-password",
+	checkAuth(...Object.values(Role)),
+	validateRequest(changePasswordZodSchema),
+	AuthController.changePassword,
+);
+router.post(
+	"/set-password",
+	checkAuth(...Object.values(Role)),
+	validateRequest(setPasswordZodSchema),
+	AuthController.setPassword,
+);
 router.post("/forgot-password", validateRequest(forgotPasswordZodSchema), AuthController.forgotPassword);
-router.post("/reset-password", AuthController.resetPassword);
+router.post("/reset-password", validateRequest(resetPasswordZodSchema), AuthController.resetPassword);
 
 router.get("/google", (req: Request, res: Response, next: NextFunction) => {
 	const state = createOAuthState(res, req.query.redirect);
