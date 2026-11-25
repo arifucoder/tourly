@@ -53,6 +53,7 @@
   --color-cyan-text: var(--cyan-text);
   --color-navy: var(--navy);
   --color-cta: var(--cta);
+  --color-cta-foreground: var(--cta-foreground);
   --color-surface-2: var(--surface-2);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-destructive-soft: var(--destructive-soft);
@@ -164,6 +165,7 @@
   --cyan-text: #0E7C92;
   --navy: #0A192D;
   --cta: #F2C94C;
+  --cta-foreground: #0A192D;
   --surface-2: #F8F7F5;
   --page: #F6F7F9;
   --coral: #FF7A93;

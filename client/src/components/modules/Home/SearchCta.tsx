@@ -23,14 +23,14 @@ export default function SearchCta() {
 
 	return (
 		<section className={`${container} ${sectionTop} pb-10 sm:pb-25`}>
-			<div className="relative flex flex-col items-center gap-3.5 overflow-hidden rounded-2xl bg-cta px-5 py-9 text-center text-navy sm:px-10 sm:py-14">
+			<div className="relative flex flex-col items-center gap-3.5 overflow-hidden rounded-2xl bg-cta px-5 py-9 text-center text-cta-foreground sm:px-10 sm:py-14">
 				<div
 					aria-hidden="true"
-					className="absolute -top-1.5 left-12 size-0 border-y-34 border-r-58 border-y-transparent border-r-navy/18"
+					className="absolute -top-1.5 left-12 size-0 border-y-34 border-r-58 border-y-transparent border-r-cta-foreground/18"
 				/>
 				<div aria-hidden="true" className="absolute right-17.5 -bottom-7.5 size-18 rounded-full bg-white/35" />
 				<h2 className="relative text-[26px] leading-tight font-bold sm:text-[32px]">Where do you want to go next?</h2>
-				<p className="relative max-w-105 text-sm text-navy/80">{reach}</p>
+				<p className="relative max-w-105 text-sm text-cta-foreground/80">{reach}</p>
 				<form
 					role="search"
 					onSubmit={handleSubmit}
@@ -45,7 +45,7 @@ export default function SearchCta() {
 						value={query}
 						onChange={(event) => setQuery(event.target.value)}
 						placeholder="Try “Sajek” or “Sylhet”"
-						className="min-h-9 flex-1 border-0 bg-transparent text-[13px] text-navy outline-none placeholder:text-navy/50"
+						className="min-h-9 flex-1 border-0 bg-transparent text-[13px] text-cta-foreground outline-none placeholder:text-cta-foreground/50"
 					/>
 					<button
 						type="submit"
