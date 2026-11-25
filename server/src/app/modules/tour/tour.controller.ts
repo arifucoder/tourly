@@ -111,8 +111,7 @@ const getSingleTour = catchAsync(async (req: Request, res: Response) => {
 
 const updateTourType = catchAsync(async (req: Request, res: Response) => {
 	const { id } = req.params;
-	const { name } = req.body;
-	const result = await TourService.updateTourType(id as string, name);
+	const result = await TourService.updateTourType(id as string, req.body);
 	sendResponse(res, {
 		statusCode: 200,
 		success: true,

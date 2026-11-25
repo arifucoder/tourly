@@ -60,11 +60,20 @@ const getAllTours = async (query: Record<string, string>) => {
 	const tours = queryBuilder.search().filter().sort().fields().paginate();
 
 	const [tourList, meta] = await Promise.all([tours.build(), queryBuilder.getMeta()]);
-	const bookedSeats = await countBookedSeatsByTour(tourList.map((tour) => tour._id));
+	const tourIds = tourList.map((tour) => tour._id);
+	const [bookedSeats, bookingCounts] = await Promise.all([
+		countBookedSeatsByTour(tourIds),
+		Booking.aggregate<{ _id: Types.ObjectId; count: number }>([
+			{ $match: { tour: { $in: tourIds }, status: BOOKING_STATUS.COMPLETE } },
+			{ $group: { _id: "$tour", count: { $sum: 1 } } },
+		]),
+	]);
+	const bookingsByTour = new Map(bookingCounts.map((row) => [String(row._id), row.count]));
 
 	const data = tourList.map((tour) => ({
 		...tour,
 		seatsLeft: tour.maxGuest ? Math.max(tour.maxGuest - (bookedSeats.get(String(tour._id)) ?? 0), 0) : null,
+		bookingsCount: bookingsByTour.get(String(tour._id)) ?? 0,
 	}));
 
 	return { data, meta };
@@ -172,37 +181,18 @@ const updateTour = async (id: string, payload: Partial<ITour>) => {
 	const existingTour = await Tour.findById(id);
 
 	if (!existingTour) {
-		throw new Error("Tour not found.");
+		throw new AppError(httpStatus.NOT_FOUND, "Tour not found.");
 	}
 
-	if (payload.images && payload.images.length > 0 && existingTour.images && existingTour.images.length > 0) {
-		payload.images = [...payload.images, ...existingTour.images];
-	}
+	const { deleteImages = [], images: newImages = [], ...rest } = payload;
+	const currentImages = existingTour.images ?? [];
+	const removed = currentImages.filter((url) => deleteImages.includes(url));
+	const images = [...currentImages.filter((url) => !deleteImages.includes(url)), ...newImages];
 
-	if (
-		payload.deleteImages &&
-		payload.deleteImages.length > 0 &&
-		existingTour.images &&
-		existingTour.images.length > 0
-	) {
-		const restDBImages = existingTour.images.filter((imageUrl) => !payload.deleteImages?.includes(imageUrl));
+	const updatedTour = await Tour.findByIdAndUpdate(id, { ...rest, images }, { new: true, runValidators: true });
 
-		const updatedPayloadImages = (payload.images || [])
-			.filter((imageUrl) => !payload.deleteImages?.includes(imageUrl))
-			.filter((imageUrl) => !restDBImages.includes(imageUrl));
-
-		payload.images = [...restDBImages, ...updatedPayloadImages];
-	}
-
-	const updatedTour = await Tour.findByIdAndUpdate(id, payload, { new: true });
-
-	if (
-		payload.deleteImages &&
-		payload.deleteImages.length > 0 &&
-		existingTour.images &&
-		existingTour.images.length > 0
-	) {
-		await Promise.all(payload.deleteImages.map((url) => deleteImageFromCLoudinary(url)));
+	if (removed.length > 0) {
+		await Promise.all(removed.map((url) => deleteImageFromCLoudinary(url)));
 	}
 
 	return updatedTour;
@@ -221,31 +211,51 @@ const deleteTour = async (id: string) => {
 	return null;
 };
 
-const createTourType = async (payload: ITourType) => {
-	const existingTourType = await TourType.findOne({ name: payload.name });
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-	if (existingTourType) {
-		throw new Error("Tour type already exists.");
+const assertUniqueTourTypeName = async (name: string, excludeId?: string) => {
+	const duplicate = await TourType.exists({
+		name: { $regex: `^${escapeRegex(name.trim())}$`, $options: "i" },
+		...(excludeId && { _id: { $ne: excludeId } }),
+	});
+	if (duplicate) {
+		throw new AppError(httpStatus.CONFLICT, `"${name.trim()}" already exists.`);
 	}
+};
 
-	return await TourType.create({ name: payload.name });
+const createTourType = async (payload: ITourType) => {
+	await assertUniqueTourTypeName(payload.name);
+	return await TourType.create({ name: payload.name.trim() });
 };
+
 const getAllTourTypes = async () => {
-	return await TourType.find();
+	const [types, counts] = await Promise.all([
+		TourType.find().sort("-createdAt").lean(),
+		Tour.aggregate<{ _id: Types.ObjectId; count: number }>([{ $group: { _id: "$tourType", count: { $sum: 1 } } }]),
+	]);
+	const countByType = new Map(counts.map((row) => [String(row._id), row.count]));
+	return types.map((type) => ({ ...type, tourCount: countByType.get(String(type._id)) ?? 0 }));
 };
+
 const updateTourType = async (id: string, payload: ITourType) => {
 	const existingTourType = await TourType.findById(id);
 	if (!existingTourType) {
-		throw new Error("Tour type not found.");
+		throw new AppError(httpStatus.NOT_FOUND, "Tour type not found.");
 	}
 
-	const updatedTourType = await TourType.findByIdAndUpdate(id, payload, { new: true });
-	return updatedTourType;
+	await assertUniqueTourTypeName(payload.name, id);
+	return await TourType.findByIdAndUpdate(id, { name: payload.name.trim() }, { new: true });
 };
+
 const deleteTourType = async (id: string) => {
 	const existingTourType = await TourType.findById(id);
 	if (!existingTourType) {
-		throw new Error("Tour type not found.");
+		throw new AppError(httpStatus.NOT_FOUND, "Tour type not found.");
+	}
+
+	const inUse = await Tour.countDocuments({ tourType: id });
+	if (inUse > 0) {
+		throw new AppError(httpStatus.CONFLICT, `In use by ${inUse} tour${inUse === 1 ? "" : "s"}. Reassign them first.`);
 	}
 
 	return await TourType.findByIdAndDelete(id);
