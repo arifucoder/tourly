@@ -8,10 +8,13 @@ import {
 	tourSortableFields,
 } from "./tour.constant";
 import type { ITour, ITourType } from "./tour.interface";
+import { BOOKING_STATUS } from "../booking/booking.interface";
+import { Booking } from "../booking/booking.model";
+import { countBookedSeats } from "../booking/booking.service";
 import { Division } from "../division/division.model";
 import { Tour, TourType } from "./tour.model";
 import httpStatus from "http-status-codes";
-import type { PipelineStage } from "mongoose";
+import type { PipelineStage, Types } from "mongoose";
 
 const createTour = async (payload: ITour) => {
 	const existingTour = await Tour.findOne({ title: payload.title });
@@ -79,12 +82,55 @@ const getTourFilterOptions = async () => {
 	};
 };
 
+const TRENDING_WINDOW_DAYS = 90;
+const TOUR_CARD_FIELDS = "title slug images location costFrom startDate endDate maxGuest division tourType";
+
+const getTrendingTours = async (limit: number) => {
+	const since = new Date(Date.now() - TRENDING_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+
+	const ranked = await Booking.aggregate<{ _id: Types.ObjectId; bookings: number }>([
+		{ $match: { status: BOOKING_STATUS.COMPLETE, createdAt: { $gte: since } } },
+		{ $group: { _id: "$tour", bookings: { $sum: 1 } } },
+		{ $sort: { bookings: -1 } },
+		{ $limit: limit },
+	]);
+
+	const bookingsByTour = new Map(ranked.map((row) => [row._id.toString(), row.bookings]));
+	const rankedTours = await Tour.find({ _id: { $in: ranked.map((row) => row._id) } })
+		.select(TOUR_CARD_FIELDS)
+		.populate("division", "name slug")
+		.populate("tourType", "name")
+		.lean();
+
+	const tours = rankedTours
+		.map((tour) => ({ ...tour, bookingsCount: bookingsByTour.get(tour._id.toString()) ?? 0 }))
+		.sort((a, b) => b.bookingsCount - a.bookingsCount);
+
+	if (tours.length < limit) {
+		const fillers = await Tour.find({ _id: { $nin: tours.map((tour) => tour._id) }, startDate: { $gte: new Date() } })
+			.sort("startDate")
+			.limit(limit - tours.length)
+			.select(TOUR_CARD_FIELDS)
+			.populate("division", "name slug")
+			.populate("tourType", "name")
+			.lean();
+		tours.push(...fillers.map((tour) => ({ ...tour, bookingsCount: 0 })));
+	}
+
+	return tours;
+};
+
 const getSingleTour = async (slug: string) => {
-	const tour = await Tour.findOne({ slug }).populate("division", "name slug").populate("tourType", "name");
+	const tour = await Tour.findOne({ slug }).populate("division", "name slug").populate("tourType", "name").lean();
 	if (!tour) {
 		throw new AppError(httpStatus.NOT_FOUND, "Tour not found.");
 	}
-	return tour;
+	const seatsBooked = await countBookedSeats(tour._id);
+	return {
+		...tour,
+		seatsBooked,
+		seatsLeft: tour.maxGuest ? Math.max(tour.maxGuest - seatsBooked, 0) : null,
+	};
 };
 
 const updateTour = async (id: string, payload: Partial<ITour>) => {
@@ -171,6 +217,7 @@ const deleteTourType = async (id: string) => {
 };
 
 export const TourService = {
+	getTrendingTours,
 	getTourFilterOptions,
 	createTour,
 	createTourType,

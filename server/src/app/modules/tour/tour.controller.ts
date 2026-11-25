@@ -66,6 +66,18 @@ const getTourFilterOptions = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+const getTrendingTours = catchAsync(async (req: Request, res: Response) => {
+	const limit = Math.min(Math.max(Number.parseInt(String(req.query.limit ?? "4"), 10) || 4, 1), 12);
+	const result = await TourService.getTrendingTours(limit);
+	res.set("Cache-Control", "public, max-age=300");
+	sendResponse(res, {
+		statusCode: 200,
+		success: true,
+		message: "Trending tours retrieved",
+		data: result,
+	});
+});
+
 const getAllTourTypes = catchAsync(async (req: Request, res: Response) => {
 	const result = await TourService.getAllTourTypes();
 	sendResponse(res, {
@@ -120,6 +132,7 @@ const deleteTourType = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const TourController = {
+	getTrendingTours,
 	getTourFilterOptions,
 	createTour,
 	createTourType,

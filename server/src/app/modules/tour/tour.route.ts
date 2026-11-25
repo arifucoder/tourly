@@ -10,6 +10,7 @@ const router = express.Router();
 
 router.get("/tour-types", TourController.getAllTourTypes);
 router.get("/filter-options", TourController.getTourFilterOptions);
+router.get("/trending", TourController.getTrendingTours);
 
 router.post(
 	"/create-tour-type",
