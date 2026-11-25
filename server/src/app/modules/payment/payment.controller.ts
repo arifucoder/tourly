@@ -1,4 +1,5 @@
 import { type Request, type Response } from "express";
+import type { JwtPayload } from "jsonwebtoken";
 import { envVars } from "../../config/env";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
@@ -7,11 +8,11 @@ import { PaymentService } from "./payment.service";
 
 const initPayment = catchAsync(async (req: Request, res: Response) => {
 	const bookingId = req.params.bookingId;
-	const result = await PaymentService.initPayment(bookingId as string);
+	const result = await PaymentService.initPayment(bookingId as string, (req.user as JwtPayload).userId);
 	sendResponse(res, {
-		statusCode: 201,
+		statusCode: 200,
 		success: true,
-		message: "Payment done successfully",
+		message: "Payment session created",
 		data: result,
 	});
 });

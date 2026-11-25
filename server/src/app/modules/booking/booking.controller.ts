@@ -1,64 +1,106 @@
 import type { Request, Response } from "express";
-import { type JwtPayload } from "jsonwebtoken";
+import httpStatus from "http-status-codes";
+import type { JwtPayload } from "jsonwebtoken";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import { BookingService } from "./booking.service";
+import { allBookingsQuerySchema, bookingSummaryQuerySchema, myBookingsQuerySchema } from "./booking.validation";
 
 const createBooking = catchAsync(async (req: Request, res: Response) => {
-	const decodeToken = req.user as JwtPayload;
-	const booking = await BookingService.createBooking(req.body, decodeToken.userId);
+	const result = await BookingService.createBooking(req.body, (req.user as JwtPayload).userId);
 	sendResponse(res, {
-		statusCode: 201,
+		statusCode: httpStatus.CREATED,
 		success: true,
 		message: "Booking created successfully",
-		data: booking,
+		data: result,
 	});
 });
 
 const getUserBookings = catchAsync(async (req: Request, res: Response) => {
-	const bookings = await BookingService.getUserBookings();
+	const query = myBookingsQuerySchema.parse(req.query);
+	const result = await BookingService.getUserBookings((req.user as JwtPayload).userId, query);
 	sendResponse(res, {
-		statusCode: 200,
+		statusCode: httpStatus.OK,
 		success: true,
 		message: "Bookings retrieved successfully",
-		data: bookings,
+		data: result.data,
+		meta: result.meta,
 	});
 });
-const getSingleBooking = catchAsync(async (req: Request, res: Response) => {
-	const booking = await BookingService.getBookingById();
+
+const getUserBookingSummary = catchAsync(async (req: Request, res: Response) => {
+	const result = await BookingService.getUserBookingSummary((req.user as JwtPayload).userId);
 	sendResponse(res, {
-		statusCode: 200,
+		statusCode: httpStatus.OK,
+		success: true,
+		message: "Booking summary retrieved successfully",
+		data: result,
+	});
+});
+
+const getSingleBooking = catchAsync(async (req: Request, res: Response) => {
+	const result = await BookingService.getBookingById(req.params.bookingId as string, {
+		userId: (req.user as JwtPayload).userId,
+		role: (req.user as JwtPayload).role,
+	});
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
 		success: true,
 		message: "Booking retrieved successfully",
-		data: booking,
+		data: result,
 	});
 });
 
 const getAllBookings = catchAsync(async (req: Request, res: Response) => {
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	const bookings = await BookingService.getAllBookings();
+	const query = allBookingsQuerySchema.parse(req.query);
+	const result = await BookingService.getAllBookings(query);
 	sendResponse(res, {
-		statusCode: 200,
+		statusCode: httpStatus.OK,
 		success: true,
 		message: "Bookings retrieved successfully",
-		data: {},
+		data: result.data,
+		meta: result.meta,
+	});
+});
+
+const getBookingSummary = catchAsync(async (req: Request, res: Response) => {
+	const query = bookingSummaryQuerySchema.parse(req.query);
+	const result = await BookingService.getBookingSummary(query);
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: "Booking summary retrieved successfully",
+		data: result,
+	});
+});
+
+const cancelMyBooking = catchAsync(async (req: Request, res: Response) => {
+	const result = await BookingService.cancelMyBooking(req.params.bookingId as string, (req.user as JwtPayload).userId);
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: "Booking cancelled successfully",
+		data: result,
 	});
 });
 
 const updateBookingStatus = catchAsync(async (req: Request, res: Response) => {
-	const updated = await BookingService.updateBookingStatus();
+	const result = await BookingService.updateBookingStatus(req.params.bookingId as string, req.body.status);
 	sendResponse(res, {
-		statusCode: 200,
+		statusCode: httpStatus.OK,
 		success: true,
-		message: "Booking Status Updated Successfully",
-		data: updated,
+		message: "Booking status updated successfully",
+		data: result,
 	});
 });
 
 export const BookingController = {
 	createBooking,
-	getAllBookings,
-	getSingleBooking,
 	getUserBookings,
+	getUserBookingSummary,
+	getSingleBooking,
+	getAllBookings,
+	getBookingSummary,
+	cancelMyBooking,
 	updateBookingStatus,
 };

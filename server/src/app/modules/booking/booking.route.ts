@@ -8,20 +8,23 @@ import { createBookingZodSchema, updateBookingStatusZodSchema } from "./booking.
 
 const router = express.Router();
 
-router.post(
-	"/",
-	checkAuth(...Object.values(Role)),
-	validateRequest(createBookingZodSchema),
-	BookingController.createBooking,
-);
+const allRoles = Object.values(Role);
+const adminRoles = [Role.ADMIN, Role.SUPER_ADMIN];
 
-router.get("/", checkAuth(Role.ADMIN, Role.SUPER_ADMIN), BookingController.getAllBookings);
-router.get("/my-bookings", checkAuth(...Object.values(Role)), BookingController.getUserBookings);
-router.get("/:bookingId", checkAuth(...Object.values(Role)), BookingController.getSingleBooking);
+router.post("/", checkAuth(...allRoles), validateRequest(createBookingZodSchema), BookingController.createBooking);
 
+router.get("/", checkAuth(...adminRoles), BookingController.getAllBookings);
+router.get("/summary", checkAuth(...adminRoles), BookingController.getBookingSummary);
+
+router.get("/my-bookings", checkAuth(...allRoles), BookingController.getUserBookings);
+router.get("/my-bookings/summary", checkAuth(...allRoles), BookingController.getUserBookingSummary);
+
+router.get("/:bookingId", checkAuth(...allRoles), BookingController.getSingleBooking);
+
+router.patch("/:bookingId/cancel", checkAuth(...allRoles), BookingController.cancelMyBooking);
 router.patch(
 	"/:bookingId/status",
-	checkAuth(...Object.values(Role)),
+	checkAuth(...adminRoles),
 	validateRequest(updateBookingStatusZodSchema),
 	BookingController.updateBookingStatus,
 );

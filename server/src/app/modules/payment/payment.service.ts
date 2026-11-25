@@ -1,46 +1,77 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import httpStatus from "http-status-codes";
+import { isValidObjectId } from "mongoose";
 import { uploadBufferToCloudinary } from "../../config/cloudinary.config";
 import AppError from "../../errorHelpers/AppError";
+import { getTransactionId } from "../../utils/getTransactionId";
 import { generatePdf, type IInvoiceData } from "../../utils/invoice";
 import { sendEmail } from "../../utils/sendEmail";
 import { BOOKING_STATUS } from "../booking/booking.interface";
 import { Booking } from "../booking/booking.model";
-import { type ISSLCommerz } from "../sslCommerz/sslCommerz.interface";
 import { SSLService } from "../sslCommerz/sslCommerz.service";
 import type { ITour } from "../tour/tour.interface";
 import type { IUser } from "../user/user.interface";
 import { PAYMENT_STATUS } from "./payment.interface";
 import { Payment } from "./payment.model";
 
-const initPayment = async (bookingId: string) => {
-	const payment = await Payment.findOne({ booking: bookingId });
-
-	if (!payment) {
-		throw new AppError(httpStatus.NOT_FOUND, "Payment Not Found. You have not booked this tour");
+const initPayment = async (bookingId: string, userId: string) => {
+	if (!isValidObjectId(bookingId)) {
+		throw new AppError(httpStatus.BAD_REQUEST, "Invalid booking id.");
 	}
 
-	const booking = await Booking.findById(payment.booking);
+	const booking = await Booking.findOne({ _id: bookingId, user: userId }).populate<{ user: IUser }>(
+		"user",
+		"name email phone address",
+	);
 
-	const userAddress = (booking?.user as any).address;
-	const userEmail = (booking?.user as any).email;
-	const userPhoneNumber = (booking?.user as any).phone;
-	const userName = (booking?.user as any).name;
+	if (!booking) {
+		throw new AppError(httpStatus.NOT_FOUND, "Booking not found.");
+	}
+	if (booking.status !== BOOKING_STATUS.PENDING && booking.status !== BOOKING_STATUS.FAILED) {
+		throw new AppError(httpStatus.BAD_REQUEST, `A ${booking.status} booking cannot be paid.`);
+	}
 
-	const sslPayload: ISSLCommerz = {
-		address: userAddress,
-		email: userEmail,
-		phoneNumber: userPhoneNumber,
-		name: userName,
-		amount: payment.amount,
-		transactionId: payment.transactionId,
-	};
+	const payment = await Payment.findOne({ booking: booking._id });
 
-	const sslPayment = await SSLService.sslPaymentInit(sslPayload);
+	if (!payment) {
+		throw new AppError(httpStatus.NOT_FOUND, "Payment not found for this booking.");
+	}
 
-	return {
-		paymentUrl: sslPayment.GatewayPageURL,
-	};
+	const { name, email, phone, address } = booking.user;
+
+	if (!phone || !address) {
+		throw new AppError(httpStatus.BAD_REQUEST, "Please update your profile (phone and address) before paying.");
+	}
+
+	const transactionId = getTransactionId();
+
+	const session = await Booking.startSession();
+	session.startTransaction();
+
+	try {
+		await Payment.updateOne(
+			{ _id: payment._id },
+			{ transactionId, status: PAYMENT_STATUS.UNPAID },
+			{ runValidators: true, session },
+		);
+		await Booking.updateOne({ _id: booking._id }, { status: BOOKING_STATUS.PENDING }, { session });
+
+		const paymentUrl = await SSLService.sslPaymentInit({
+			name,
+			email,
+			phoneNumber: phone,
+			address,
+			amount: payment.amount,
+			transactionId,
+		});
+
+		await session.commitTransaction();
+		return { paymentUrl };
+	} catch (error) {
+		await session.abortTransaction();
+		throw error;
+	} finally {
+		await session.endSession();
+	}
 };
 const successPayment = async (query: Record<string, string>) => {
 	const session = await Booking.startSession();
