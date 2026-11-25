@@ -6,9 +6,7 @@ import { Tour } from "../tour/tour.model";
 import { IsActive } from "../user/user.interface";
 import { User } from "../user/user.model";
 
-const now = new Date();
-const sevenDaysAgo = new Date(now).setDate(now.getDate() - 7);
-const thirtyDaysAgo = new Date(now).setDate(now.getDate() - 30);
+const daysAgo = (days: number) => new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
 const getUserStats = async () => {
 	const totalUsersPromise = User.countDocuments();
@@ -18,10 +16,10 @@ const getUserStats = async () => {
 	const totalBlockedUsersPromise = User.countDocuments({ isActive: IsActive.BLOCKED });
 
 	const newUsersInLast7DaysPromise = User.countDocuments({
-		createdAt: { $gte: sevenDaysAgo },
+		createdAt: { $gte: daysAgo(7) },
 	});
 	const newUsersInLast30DaysPromise = User.countDocuments({
-		createdAt: { $gte: thirtyDaysAgo },
+		createdAt: { $gte: daysAgo(30) },
 	});
 
 	const usersByRolePromise = User.aggregate([
@@ -237,10 +235,10 @@ const getBookingStats = async () => {
 	]);
 
 	const bookingsLast7DaysPromise = Booking.countDocuments({
-		createdAt: { $gte: sevenDaysAgo },
+		createdAt: { $gte: daysAgo(7) },
 	});
 	const bookingsLast30DaysPromise = Booking.countDocuments({
-		createdAt: { $gte: thirtyDaysAgo },
+		createdAt: { $gte: daysAgo(30) },
 	});
 
 	const totalBookingByUniqueUsersPromise = Booking.distinct("user").then((user: any) => user.length);
