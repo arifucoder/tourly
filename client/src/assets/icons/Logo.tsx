@@ -7,6 +7,7 @@ const BRAND_NAME = "tourly";
 type LogoProps = {
 	className?: string;
 	to?: string;
+	size?: "default" | "sm";
 };
 
 export function LogoMark({ className }: { className?: string }) {
@@ -31,15 +32,17 @@ export function LogoText({ className }: { className?: string }) {
 	);
 }
 
-export default function Logo({ className, to = "/" }: LogoProps) {
+export default function Logo({ className, to = "/", size = "default" }: LogoProps) {
+	const small = size === "sm";
+
 	return (
 		<Link
 			to={to}
 			aria-label="Tourly home"
 			className={cn("flex items-center gap-2.5 text-foreground no-underline", className)}
 		>
-			<LogoMark />
-			<LogoText />
+			<LogoMark className={small ? "size-7.5" : undefined} />
+			<LogoText className={small ? "text-[19px]" : undefined} />
 		</Link>
 	);
 }

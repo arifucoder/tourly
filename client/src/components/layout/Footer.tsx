@@ -1,4 +1,6 @@
 import Logo from "@/assets/icons/Logo";
+import { siteContact } from "@/constants/site";
+import { Mail, MapPin, Phone } from "lucide-react";
 import { Link } from "react-router";
 
 const footerSections = [
@@ -6,8 +8,6 @@ const footerSections = [
 		title: "Explore",
 		links: [
 			{ label: "All tours", href: "/tours" },
-			{ label: "Short tours", href: "/tours?type=short" },
-			{ label: "Long tours", href: "/tours?type=long" },
 			{ label: "Divisions", href: "/divisions" },
 		],
 	},
@@ -16,7 +16,6 @@ const footerSections = [
 		links: [
 			{ label: "About us", href: "/about" },
 			{ label: "Become a guide", href: "/become-a-guide" },
-			{ label: "Contact", href: "/contact" },
 		],
 	},
 	{
@@ -24,24 +23,24 @@ const footerSections = [
 		links: [
 			{ label: "Help centre", href: "/help" },
 			{ label: "Cancellation policy", href: "/cancellation-policy" },
+			{ label: "Terms & privacy", href: "/terms" },
 		],
 	},
 ];
 
-const linkClass = "text-sm text-muted-foreground transition-colors hover:text-primary";
+const contactLinks = [
+	{ label: "Email us", href: `mailto:${siteContact.email}`, Icon: Mail },
+	{ label: "Call us", href: `tel:${siteContact.phone}`, Icon: Phone },
+	{ label: "Find our office", href: siteContact.mapUrl, Icon: MapPin, external: true },
+];
+
+const linkClass = "text-[13.5px] text-muted-foreground transition-colors hover:text-primary-text";
 
 export default function Footer() {
 	return (
-		<footer className="w-full bg-background pb-7 pt-20">
-			<div className="mx-auto flex max-w-300 flex-col gap-14 px-4 sm:px-10">
-				<div className="grid grid-cols-1 gap-9 sm:grid-cols-2 lg:grid-cols-4">
-					<div className="flex flex-col gap-3.5">
-						<Logo />
-						<p className="max-w-65 text-sm text-muted-foreground">
-							Guided tours across Bangladesh, booked and paid online in taka.
-						</p>
-					</div>
-
+		<footer className="w-full bg-background pt-20 pb-7">
+			<div className="mx-auto flex max-w-300 flex-col gap-11 px-4 sm:px-10">
+				<div className="grid grid-cols-[repeat(auto-fit,minmax(min(180px,100%),1fr))] gap-8">
 					{footerSections.map((section) => (
 						<nav key={section.title} aria-label={section.title} className="flex flex-col gap-3">
 							<strong className="text-[15px] font-semibold text-foreground">{section.title}</strong>
@@ -50,25 +49,38 @@ export default function Footer() {
 									{link.label}
 								</Link>
 							))}
-							{section.title === "Support" && (
-								<>
-									<span className="text-sm text-muted-foreground">+880 1XXX-XXXXXX</span>
-									<span className="text-sm text-muted-foreground">support@phoviatour.com</span>
-								</>
-							)}
 						</nav>
 					))}
+
+					<div className="flex flex-col gap-3">
+						<strong className="text-[15px] font-semibold text-foreground">Get in Touch</strong>
+						<span className="text-[13.5px] text-muted-foreground">Questions about a trip? We reply within a day.</span>
+						<a
+							href={`mailto:${siteContact.email}`}
+							className="text-[15px] font-semibold text-cyan-text transition-opacity hover:opacity-80"
+						>
+							{siteContact.email}
+						</a>
+					</div>
 				</div>
 
-				<div className="flex flex-col gap-3 border-t border-border pt-5.5 text-[13px] sm:flex-row sm:items-center sm:justify-between">
-					<span className="text-muted-foreground">© 2026 Tourly. All rights reserved.</span>
-					<div className="flex gap-6">
-						<Link to="/terms" className="text-[13px] text-muted-foreground transition-colors hover:text-primary">
-							Terms of service
-						</Link>
-						<Link to="/privacy" className="text-[13px] text-muted-foreground transition-colors hover:text-primary">
-							Privacy policy
-						</Link>
+				<div className="flex flex-col items-center justify-between gap-4.5 border-t border-border pt-6 sm:flex-row">
+					<Logo size="sm" />
+					<span className="text-center text-[13px] text-muted-foreground">
+						© {new Date().getFullYear()} Tourly. All rights reserved. · Prices in Bangladeshi Taka (৳ BDT)
+					</span>
+					<div className="flex gap-2.5">
+						{contactLinks.map(({ label, href, Icon, external }) => (
+							<a
+								key={label}
+								href={href}
+								aria-label={label}
+								{...(external && { target: "_blank", rel: "noreferrer" })}
+								className="inline-flex size-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:border-primary hover:text-primary-text"
+							>
+								<Icon className="size-4" />
+							</a>
+						))}
 					</div>
 				</div>
 			</div>
