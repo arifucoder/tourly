@@ -104,7 +104,7 @@ const forgotPassword = async (email: string) => {
 	const isUserExist = await User.findOne({ email }).select("+password");
 
 	if (!isUserExist) {
-		throw new AppError(httpStatus.BAD_REQUEST, "User does not exist");
+		return;
 	}
 	if (!isUserExist.isVerified) {
 		throw new AppError(httpStatus.BAD_REQUEST, "User is not verified");
