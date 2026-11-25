@@ -1,5 +1,16 @@
 import type { ISidebarItem } from "@/types";
-import { BadgeCheck, ChartColumn, LayoutDashboard, Map, Mountain, Tag, Ticket, Users } from "lucide-react";
+import {
+	BadgeCheck,
+	ChartColumn,
+	LayoutDashboard,
+	Map,
+	Mountain,
+	ShieldCheck,
+	Tag,
+	Ticket,
+	UserRound,
+	Users,
+} from "lucide-react";
 import { lazy } from "react";
 
 const Overview = lazy(() => import("@/pages/Admin/Overview"));
@@ -11,6 +22,8 @@ const Divisions = lazy(() => import("@/pages/Admin/AddDivision"));
 const Bookings = lazy(() => import("@/pages/Admin/Bookings"));
 const UsersPage = lazy(() => import("@/pages/Admin/Users"));
 const GuideApplications = lazy(() => import("@/pages/Admin/GuideApplications"));
+const Profile = lazy(() => import("@/pages/User/Profile"));
+const Security = lazy(() => import("@/pages/User/Security"));
 
 export const adminSidebarItems: ISidebarItem[] = [
 	{
@@ -36,6 +49,13 @@ export const adminSidebarItems: ISidebarItem[] = [
 			{ title: "Bookings", url: "/admin/bookings", component: Bookings, icon: Ticket },
 			{ title: "Users", url: "/admin/users", component: UsersPage, icon: Users },
 			{ title: "Guide applications", url: "/admin/guide-applications", component: GuideApplications, icon: BadgeCheck },
+		],
+	},
+	{
+		title: "Account",
+		items: [
+			{ title: "Profile", url: "/admin/profile", component: Profile, icon: UserRound },
+			{ title: "Security", url: "/admin/security", component: Security, icon: ShieldCheck },
 		],
 	},
 ];

@@ -16,7 +16,7 @@ import { authApi, useLogoutMutation, useUserInfoQuery } from "@/redux/features/a
 import { useAppDispatch } from "@/redux/hook";
 import type { TRole } from "@/types";
 import { getSidebarItems } from "@/utils/getSidebarItems";
-import { ChevronDown, ExternalLink, LogOut } from "lucide-react";
+import { ChevronDown, ExternalLink, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import { Suspense } from "react";
 import { Link, matchPath, NavLink, Outlet, useLocation } from "react-router";
 import { ModeToggle } from "./ModeToggler";
@@ -25,6 +25,12 @@ const consoleLabel = (userRole?: TRole) => {
 	if (userRole === role.admin || userRole === role.superAdmin) return { crumb: "Admin", label: "Admin console" };
 	if (userRole === role.guide) return { crumb: "Guide", label: "Guide console" };
 	return { crumb: "Account", label: "My account" };
+};
+
+const accountBase = (userRole?: TRole) => {
+	if (userRole === role.admin || userRole === role.superAdmin) return "/admin";
+	if (userRole === role.guide) return "/guide";
+	return "/user";
 };
 
 const isActive = (pathname: string, url: string, rootUrl: string) =>
@@ -190,6 +196,19 @@ export default function DashboardLayout() {
 									<span className="truncate font-semibold">{user?.name}</span>
 									<span className="truncate text-xs font-normal text-muted-foreground">{user?.email}</span>
 								</DropdownMenuLabel>
+								<DropdownMenuSeparator />
+								<DropdownMenuItem asChild>
+									<Link to={`${accountBase(user?.role)}/profile`}>
+										<UserRound />
+										Profile
+									</Link>
+								</DropdownMenuItem>
+								<DropdownMenuItem asChild>
+									<Link to={`${accountBase(user?.role)}/security`}>
+										<ShieldCheck />
+										Security
+									</Link>
+								</DropdownMenuItem>
 								<DropdownMenuSeparator />
 								<DropdownMenuItem asChild>
 									<Link to="/">

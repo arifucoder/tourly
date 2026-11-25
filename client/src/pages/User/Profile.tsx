@@ -17,6 +17,8 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 
+const isStaff = (userRole?: string) => userRole === "ADMIN" || userRole === "SUPER_ADMIN";
+
 const MAX_SIZE = 2 * 1024 * 1024;
 const IMAGE_TYPES = ["image/png", "image/jpeg"];
 
@@ -168,7 +170,9 @@ function ProfileForm({ me }: { me: IMe }) {
 					hint={
 						me.role === "GUIDE"
 							? "Travellers on your trips can call you on this number."
-							: "Needed to book a tour. Your guide uses it to reach you."
+							: isStaff(me.role)
+								? "Other admins and guides can reach you on this number."
+								: "Needed to book a tour. Your guide uses it to reach you."
 					}
 				>
 					<input
@@ -224,7 +228,9 @@ export default function Profile() {
 				description={
 					me?.role === "GUIDE"
 						? "Admins and your travellers use these details to reach you."
-						: "Your guide uses these details to reach you before a trip."
+						: isStaff(me?.role)
+							? "Your name, photo and contact details across the admin console."
+							: "Your guide uses these details to reach you before a trip."
 				}
 			/>
 
