@@ -25,6 +25,16 @@ const bookingSchema = new Schema<IBooking>(
 			type: Schema.Types.ObjectId,
 			ref: "Payment",
 		},
+		guide: {
+			type: Schema.Types.ObjectId,
+			ref: "User",
+			index: true,
+			default: null,
+		},
+		guideAssignedAt: {
+			type: Date,
+			default: null,
+		},
 		status: {
 			type: String,
 			enum: Object.values(BOOKING_STATUS),

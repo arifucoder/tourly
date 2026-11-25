@@ -12,6 +12,8 @@ export interface IBooking {
 	user: Types.ObjectId;
 	tour: Types.ObjectId;
 	payment?: Types.ObjectId;
+	guide?: Types.ObjectId | null;
+	guideAssignedAt?: Date | null;
 	guestCount: number;
 	status: BOOKING_STATUS;
 	createdAt?: Date;
