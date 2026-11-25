@@ -38,6 +38,16 @@ const userSchema = new Schema<IUser>(
 		},
 		isVerified: { type: Boolean, default: false },
 		auths: [authProviderSchema],
+		roleChange: {
+			type: new Schema(
+				{
+					by: { type: Schema.Types.ObjectId, ref: "User" },
+					at: { type: Date, required: true },
+					via: { type: String, enum: ["ADMIN", "GUIDE_APPLICATION"], required: true },
+				},
+				{ _id: false, versionKey: false },
+			),
+		},
 	},
 	{
 		timestamps: true,

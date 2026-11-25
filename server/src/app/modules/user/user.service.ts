@@ -7,6 +7,8 @@ import { envVars } from "../../config/env";
 import AppError from "../../errorHelpers/AppError";
 import { QueryBuilder } from "../../utils/QueryBuilder";
 import { Booking } from "../booking/booking.model";
+import { GUIDE_APPLICATION_STATUS } from "../guideApplication/guideApplication.interface";
+import { GuideApplication } from "../guideApplication/guideApplication.model";
 import {
 	userFilterableFields,
 	userSearchableFields,
@@ -78,9 +80,57 @@ const updateUser = async (userId: string, payload: Partial<IUser>, decodedToken:
 		}
 	}
 
-	const newUpdatedUser = await User.findByIdAndUpdate(userId, payload, { new: true, runValidators: true });
+	const update: Partial<IUser> = { ...payload };
+	if (payload.role && payload.role !== ifUserExist.role) {
+		update.roleChange = { by: decodedToken.userId, at: new Date(), via: "ADMIN" };
+	}
+
+	const newUpdatedUser = await User.findByIdAndUpdate(userId, update, { new: true, runValidators: true });
 
 	return newUpdatedUser;
+};
+
+const attachGuideInfo = async <T extends { _id: Types.ObjectId; role: Role; roleChange?: IUser["roleChange"] }>(
+	rows: T[],
+) => {
+	const guides = rows.filter((row) => row.role === Role.GUIDE);
+	if (guides.length === 0) return rows.map((row) => ({ ...row, guideInfo: null }));
+
+	const [applications, changers] = await Promise.all([
+		GuideApplication.find({ user: { $in: guides.map((row) => row._id) }, status: GUIDE_APPLICATION_STATUS.APPROVED })
+			.sort("-reviewedAt")
+			.select("user division reviewedBy reviewedAt")
+			.populate<{ division: { name: string } | null }>("division", "name")
+			.populate<{ reviewedBy: { name: string } | null }>("reviewedBy", "name")
+			.lean(),
+		User.find({
+			_id: { $in: guides.flatMap((row) => (row.roleChange?.by ? [row.roleChange.by] : [])) },
+		})
+			.select("name")
+			.lean<{ _id: Types.ObjectId; name: string }[]>(),
+	]);
+
+	const nameById = new Map(changers.map((user) => [user._id.toString(), user.name]));
+
+	return rows.map((row) => {
+		if (row.role !== Role.GUIDE) return { ...row, guideInfo: null };
+
+		const approved = applications.filter((application) => application.user.toString() === row._id.toString());
+		const latest = approved[0];
+		const change = row.roleChange;
+		const via = change?.via ?? (latest ? "GUIDE_APPLICATION" : "ADMIN");
+		const byName = change?.by ? nameById.get(change.by.toString()) : undefined;
+
+		return {
+			...row,
+			guideInfo: {
+				via,
+				by: byName ?? (via === "GUIDE_APPLICATION" ? latest?.reviewedBy?.name : undefined) ?? null,
+				at: change?.at ?? (via === "GUIDE_APPLICATION" ? latest?.reviewedAt : undefined) ?? null,
+				divisions: approved.map((application) => application.division?.name).filter(Boolean),
+			},
+		};
+	});
 };
 
 const getAllUsers = async (query: Record<string, string>) => {
@@ -100,11 +150,13 @@ const getAllUsers = async (query: Record<string, string>) => {
 	]);
 	const countByUser = new Map(counts.map(({ _id, count }) => [_id.toString(), count]));
 
-	const data = rows.map((row) => ({
-		...row,
-		signInMethods: [...new Set((row.auths ?? []).map((auth) => auth.provider))],
-		bookingsCount: countByUser.get(row._id.toString()) ?? 0,
-	}));
+	const data = await attachGuideInfo(
+		rows.map((row) => ({
+			...row,
+			signInMethods: [...new Set((row.auths ?? []).map((auth) => auth.provider))],
+			bookingsCount: countByUser.get(row._id.toString()) ?? 0,
+		})),
+	);
 
 	return { data, meta };
 };
@@ -162,13 +214,15 @@ const getSingleUser = async (id: string) => {
 		throw new AppError(httpStatus.NOT_FOUND, "User not found");
 	}
 
-	return {
-		data: {
+	const [data] = await attachGuideInfo([
+		{
 			...user,
 			signInMethods: [...new Set((user.auths ?? []).map((auth) => auth.provider))],
 			bookingsCount,
 		},
-	};
+	]);
+
+	return { data };
 };
 
 export const UserServices = {

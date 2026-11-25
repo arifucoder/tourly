@@ -185,7 +185,10 @@ const reviewApplication = async (
 		if (status === GUIDE_APPLICATION_STATUS.APPROVED) {
 			const promoted = await User.updateOne(
 				{ _id: application.user, role: Role.USER, isDeleted: { $ne: true } },
-				{ role: Role.GUIDE },
+				{
+					role: Role.GUIDE,
+					roleChange: { by: reviewerId, at: new Date(), via: "GUIDE_APPLICATION" },
+				},
 				{ session },
 			);
 

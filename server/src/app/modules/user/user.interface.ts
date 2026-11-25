@@ -18,6 +18,14 @@ export enum IsActive {
 	BLOCKED = "BLOCKED",
 }
 
+export type TRoleChangeVia = "ADMIN" | "GUIDE_APPLICATION";
+
+export interface IRoleChange {
+	by?: Types.ObjectId;
+	at: Date;
+	via: TRoleChangeVia;
+}
+
 export interface IUser {
 	_id: Types.ObjectId;
 	name: string;
@@ -33,5 +41,6 @@ export interface IUser {
 	auths: IAuthProvider[];
 	bookings?: Types.ObjectId[];
 	guides?: Types.ObjectId[];
+	roleChange?: IRoleChange;
 	createdAt?: Date;
 }
