@@ -1,0 +1,46 @@
+# Hot-reload development inside Docker.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+# Your src folders are mounted, so saving a file reloads the API (tsx watch) and the client (Vite HMR).
+
+services:
+  api:
+    build:
+      context: ./server
+      target: deps
+    command: ["pnpm", "dev"]
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ./server/src:/app/src
+      - ./server/tsconfig.json:/app/tsconfig.json:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5000/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  web:
+    build:
+      context: ./client
+      target: deps
+    command: ["pnpm", "dev", "--host", "0.0.0.0", "--port", "5173"]
+    environment:
+      VITE_BASE_URL: ${VITE_BASE_URL:-http://localhost:5000/api/v1}
+      CHOKIDAR_USEPOLLING: "true"
+    ports: !override
+      - "${WEB_PORT:-5173}:5173"
+    volumes:
+      - ./client/src:/app/src
+      - ./client/public:/app/public
+      - ./client/index.html:/app/index.html:ro
+      - ./client/vite.config.ts:/app/vite.config.ts:ro
+      - ./client/tsconfig.json:/app/tsconfig.json:ro
+      - ./client/tsconfig.app.json:/app/tsconfig.app.json:ro
+      - ./client/tsconfig.node.json:/app/tsconfig.node.json:ro
+      - ./client/components.json:/app/components.json:ro
+    healthcheck:
+      disable: true
+    depends_on: !override
+      api:
+        condition: service_healthy
