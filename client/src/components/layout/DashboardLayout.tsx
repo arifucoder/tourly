@@ -1,25 +1,17 @@
 import { LogoMark, LogoText } from "@/assets/icons/Logo";
 import { roleLabel } from "@/components/dashboard/status";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { role } from "@/constants/role";
-import { initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { authApi, useLogoutMutation, useUserInfoQuery } from "@/redux/features/auth/auth.api";
 import { useAppDispatch } from "@/redux/hook";
 import type { TRole } from "@/types";
 import { getSidebarItems } from "@/utils/getSidebarItems";
-import { ChevronDown, ExternalLink, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { ExternalLink, LogOut } from "lucide-react";
 import { Suspense } from "react";
 import { Link, matchPath, NavLink, Outlet, useLocation } from "react-router";
 import { ModeToggle } from "./ModeToggler";
+import UserMenu, { Avatar } from "./UserMenu";
 
 const consoleLabel = (userRole?: TRole) => {
 	if (userRole === role.admin || userRole === role.superAdmin) return { crumb: "Admin", label: "Admin console" };
@@ -27,27 +19,8 @@ const consoleLabel = (userRole?: TRole) => {
 	return { crumb: "Account", label: "My account" };
 };
 
-const accountBase = (userRole?: TRole) => {
-	if (userRole === role.admin || userRole === role.superAdmin) return "/admin";
-	if (userRole === role.guide) return "/guide";
-	return "/user";
-};
-
 const isActive = (pathname: string, url: string, rootUrl: string) =>
 	url === rootUrl ? pathname === url : pathname === url || pathname.startsWith(`${url}/`);
-
-function Avatar({ name, picture, className }: { name?: string; picture?: string; className?: string }) {
-	return (
-		<span
-			className={cn(
-				"flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent text-[13px] font-semibold text-accent-foreground",
-				className,
-			)}
-		>
-			{picture ? <img src={picture} alt="" className="size-full object-cover" /> : initials(name)}
-		</span>
-	);
-}
 
 function PageFallback() {
 	return (
@@ -183,45 +156,7 @@ export default function DashboardLayout() {
 
 					<div className="flex items-center gap-2">
 						<ModeToggle className="size-10 rounded-[10px] bg-card" />
-						<DropdownMenu>
-							<DropdownMenuTrigger
-								aria-label="Account menu"
-								className="flex min-h-11 items-center gap-1.5 rounded-lg text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
-							>
-								<Avatar name={user?.name} picture={user?.picture} />
-								<ChevronDown className="size-4" />
-							</DropdownMenuTrigger>
-							<DropdownMenuContent align="end" className="w-56">
-								<DropdownMenuLabel className="flex flex-col">
-									<span className="truncate font-semibold">{user?.name}</span>
-									<span className="truncate text-xs font-normal text-muted-foreground">{user?.email}</span>
-								</DropdownMenuLabel>
-								<DropdownMenuSeparator />
-								<DropdownMenuItem asChild>
-									<Link to={`${accountBase(user?.role)}/profile`}>
-										<UserRound />
-										Profile
-									</Link>
-								</DropdownMenuItem>
-								<DropdownMenuItem asChild>
-									<Link to={`${accountBase(user?.role)}/security`}>
-										<ShieldCheck />
-										Security
-									</Link>
-								</DropdownMenuItem>
-								<DropdownMenuSeparator />
-								<DropdownMenuItem asChild>
-									<Link to="/">
-										<ExternalLink />
-										View public site
-									</Link>
-								</DropdownMenuItem>
-								<DropdownMenuItem onClick={handleLogout} variant="destructive">
-									<LogOut />
-									Log out
-								</DropdownMenuItem>
-							</DropdownMenuContent>
-						</DropdownMenu>
+						<UserMenu user={user} variant="dashboard" />
 					</div>
 				</header>
 
