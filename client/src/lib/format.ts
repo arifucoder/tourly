@@ -59,3 +59,17 @@ export const slugify = (text: string) =>
 		.replace(/[^a-z0-9\s-]/g, "")
 		.replace(/\s+/g, "-")
 		.replace(/-+/g, "-");
+
+export type TTripPhase = "upcoming" | "ongoing" | "done";
+
+export const tripPhase = (start?: string, end?: string, now = Date.now()): TTripPhase => {
+	if (!start) return "upcoming";
+	const startAt = new Date(start).getTime();
+	const endOfTrip = new Date(end ?? start);
+	endOfTrip.setHours(23, 59, 59, 999);
+	if (now < startAt) return "upcoming";
+	return now <= endOfTrip.getTime() ? "ongoing" : "done";
+};
+
+export const bookingRef = (booking: { _id: string; bookingCode?: string }) =>
+	booking.bookingCode || `#${booking._id.slice(-6).toUpperCase()}`;

@@ -15,6 +15,7 @@ const navLinks: NavItem[] = [
 	{ href: "/tours", label: "Tours" },
 	{ href: "/about", label: "About" },
 	{ href: "/admin", label: "Dashboard", roles: [role.admin, role.superAdmin] },
+	{ href: "/guide", label: "Dashboard", roles: [role.guide] },
 	{ href: "/user", label: "Dashboard", roles: [role.user] },
 ];
 

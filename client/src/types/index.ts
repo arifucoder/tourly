@@ -6,6 +6,7 @@ export type { IDivision } from "./division.type";
 export type { IMeta, ITour, ITourFilterOption, ITourFilterOptions, ITourType } from "./tour.type";
 export type {
 	IAdminBooking,
+	IAssignedBooking,
 	IAvailableGuide,
 	IBookingDetail,
 	IBookingStats,
@@ -16,6 +17,7 @@ export type {
 	IUser,
 	IUserStats,
 	TApplicationStatus,
+	TAssignedScope,
 	TBookingStatus,
 	TPaymentStatus,
 	TUserStatus,

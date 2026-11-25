@@ -1,3 +1,4 @@
+import type { TTripPhase } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { TApplicationStatus, TBookingStatus, TPaymentStatus, TRole, TUserStatus } from "@/types";
 import { accountStatus, roleLabel, type TAccountStatus } from "./status";
@@ -103,6 +104,21 @@ const applicationTone: Record<TApplicationStatus, [TTone, string]> = {
 
 export function ApplicationStatusBadge({ status }: { status: TApplicationStatus }) {
 	const [tone, text] = applicationTone[status] ?? ["neutral", status];
+	return (
+		<Badge tone={tone} dot>
+			{text}
+		</Badge>
+	);
+}
+
+const phaseTone: Record<TTripPhase, [TTone, string]> = {
+	upcoming: ["accent", "Upcoming"],
+	ongoing: ["success", "On the trip"],
+	done: ["neutral", "Completed"],
+};
+
+export function TripPhaseBadge({ phase }: { phase: TTripPhase }) {
+	const [tone, text] = phaseTone[phase];
 	return (
 		<Badge tone={tone} dot>
 			{text}

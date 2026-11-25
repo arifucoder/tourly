@@ -50,6 +50,8 @@ export interface IBookingDetail {
 		startDate?: string;
 		endDate?: string;
 		costFrom?: number;
+		departureLocation?: string;
+		arrivalLocation?: string;
 		division?: { _id: string; name: string } | null;
 	};
 	payment?: {
@@ -72,6 +74,8 @@ export interface IAvailableGuide {
 	picture?: string;
 	experienceYears: number;
 	languages: string[];
+	inDivision: boolean;
+	approvedDivisions: string[];
 	isAssigned: boolean;
 	isAvailable: boolean;
 	conflictWith: string | null;
@@ -150,4 +154,28 @@ export interface ITourStats {
 	totalTourByTourType: TCountRow[];
 	avgTourCost: { avgCostFrom: number }[];
 	totalTourByDivision: TCountRow[];
+}
+
+export type TAssignedScope = "upcoming" | "past" | "all";
+
+export interface IAssignedBooking {
+	_id: string;
+	bookingCode: string;
+	status: TBookingStatus;
+	guestCount: number;
+	guideAssignedAt?: string;
+	createdAt: string;
+	user: { _id: string; name: string; email: string; phone?: string };
+	tour: {
+		_id: string;
+		title: string;
+		slug: string;
+		images?: string[];
+		location?: string;
+		startDate?: string;
+		endDate?: string;
+		departureLocation?: string;
+		arrivalLocation?: string;
+		division?: { _id: string; name: string } | null;
+	};
 }

@@ -1,5 +1,14 @@
 import { baseApi } from "@/redux/baseApi";
-import type { IAdminBooking, IAvailableGuide, IBookingDetail, IMeta, IResponse, TBookingStatus } from "@/types";
+import type {
+	IAdminBooking,
+	IAssignedBooking,
+	IAvailableGuide,
+	IBookingDetail,
+	IMeta,
+	IResponse,
+	TAssignedScope,
+	TBookingStatus,
+} from "@/types";
 
 type TCreateBookingPayload = { tour: string; guestCount: number };
 type TCreateBookingResponse = { paymentUrl: string; booking: unknown };
@@ -54,6 +63,17 @@ export const bookingApi = baseApi.injectEndpoints({
 			transformResponse: (response: IResponse<{ currentGuide: string | null; guides: IAvailableGuide[] }>) =>
 				response.data,
 		}),
+		getAssignedBookings: builder.query<
+			{ data: IAssignedBooking[]; meta: IMeta },
+			{ scope: TAssignedScope; page?: number; limit?: number }
+		>({
+			query: (params) => ({ url: "/booking/assigned", method: "GET", params }),
+			providesTags: ["BOOKING"],
+			transformResponse: (response: IResponse<IAssignedBooking[]> & { meta: IMeta }) => ({
+				data: response.data,
+				meta: response.meta,
+			}),
+		}),
 		assignGuide: builder.mutation<unknown, { id: string; guide: string | null }>({
 			query: ({ id, guide }) => ({ url: `/booking/${id}/assign-guide`, method: "PATCH", data: { guide } }),
 			invalidatesTags: ["BOOKING"],
@@ -69,4 +89,5 @@ export const {
 	useUpdateBookingStatusMutation,
 	useGetAvailableGuidesQuery,
 	useAssignGuideMutation,
+	useGetAssignedBookingsQuery,
 } = bookingApi;

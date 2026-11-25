@@ -209,8 +209,8 @@ export default function Analytics() {
 				<Tile
 					icon={UsersRound}
 					label="Travellers who booked"
-					value={formatNumber(b.totalBookingByUniqueUsers)}
-					hint={`${(b.avgGuestCountPerBooking ?? 0).toFixed(1)} guests per booking`}
+					value={typeof b.totalBookingByUniqueUsers === "number" ? formatNumber(b.totalBookingByUniqueUsers) : "—"}
+					hint={`${Number(b.avgGuestCountPerBooking ?? 0).toFixed(1)} guests per booking`}
 				/>
 				<Tile
 					icon={Users}

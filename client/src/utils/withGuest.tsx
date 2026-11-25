@@ -15,7 +15,7 @@ export const withGuest = (Component: ComponentType) => {
 		const user = data?.data;
 		if (user?.email) {
 			const from = (location.state as { from?: string } | null)?.from;
-			const fallback = ADMIN_ROLES.includes(user.role) ? "/admin" : "/";
+			const fallback = ADMIN_ROLES.includes(user.role) ? "/admin" : user.role === role.guide ? "/guide" : "/";
 			return <Navigate to={from ?? fallback} replace />;
 		}
 

@@ -12,9 +12,10 @@ import {
 	AlertDialogMedia,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import SearchableSelect from "@/components/ui/searchable-select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatDate, formatDateRange, formatDateTime, formatNumber, formatTaka, initials } from "@/lib/format";
+import { bookingRef, formatDate, formatDateRange, formatDateTime, formatNumber, formatTaka, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
 	useAssignGuideMutation,
@@ -22,7 +23,7 @@ import {
 	useGetBookingQuery,
 	useUpdateBookingStatusMutation,
 } from "@/redux/features/Booking/booking.api";
-import type { IBookingDetail, TApiError } from "@/types";
+import type { IAvailableGuide, IBookingDetail, TApiError } from "@/types";
 import { CircleX, ExternalLink, FileText, UserRoundCheck } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
@@ -49,104 +50,113 @@ function Row({ k, v }: { k: string; v: ReactNode }) {
 	);
 }
 
+const guideSummary = (guide: IAvailableGuide) => {
+	if (!guide.isAvailable) return `Busy: ${guide.conflictWith}`;
+	const approved = guide.approvedDivisions.length ? `Approved for ${guide.approvedDivisions.join(", ")}` : "";
+	const years = guide.experienceYears ? `${guide.experienceYears} yr${guide.experienceYears === 1 ? "" : "s"}` : "";
+	return [approved, years, guide.languages.join(", ")].filter(Boolean).join(" · ");
+};
+
 function GuidePicker({ booking }: { booking: IBookingDetail }) {
 	const { data, isLoading, isError, refetch } = useGetAvailableGuidesQuery(booking._id);
 	const [assignGuide, { isLoading: isSaving }] = useAssignGuideMutation();
-	const [picked, setPicked] = useState<string | null>(booking.guide?._id ?? null);
+	const [picked, setPicked] = useState("");
+
+	const current = booking.guide ?? null;
 
 	const save = async (guide: string | null) => {
 		const toastId = toast.loading(guide ? "Assigning guide…" : "Removing guide…");
 		try {
 			await assignGuide({ id: booking._id, guide }).unwrap();
 			toast.success(guide ? "Guide assigned" : "Guide removed", { id: toastId });
-			if (!guide) setPicked(null);
+			setPicked("");
 		} catch (err) {
 			toast.error((err as TApiError).data?.message || "Couldn't update the guide", { id: toastId });
 		}
 	};
 
-	if (isLoading) {
-		return (
-			<div className="flex flex-col gap-2">
-				<Skeleton className="h-14 rounded-[10px]" />
-				<Skeleton className="h-14 rounded-[10px]" />
-			</div>
-		);
-	}
-
+	if (isLoading) return <Skeleton className="h-24 rounded-[10px]" />;
 	if (isError || !data) return <ErrorState title="Couldn't load guides" onRetry={refetch} className="py-4" />;
 
-	if (data.guides.length === 0) {
-		return (
-			<p className="rounded-[10px] bg-surface-2 px-3.5 py-3 text-[13.5px] text-muted-foreground">
-				No approved guides for {booking.tour.division?.name ?? "this division"} yet. Approve a guide application for this
-				division first.{" "}
-				<Link to="/admin/guide-applications" className="font-semibold text-primary-text hover:underline">
-					Guide applications
-				</Link>
-			</p>
-		);
-	}
-
-	const current = booking.guide?._id ?? null;
+	const options = data.guides
+		.filter((guide) => guide._id !== current?._id)
+		.map((guide) => ({
+			value: guide._id,
+			label: guide.name,
+			description: guide.email,
+			hint: [guide.phone, guideSummary(guide)].filter(Boolean).join(" · "),
+			keywords: [guide.email, guide.phone ?? ""],
+			disabled: !guide.isAvailable,
+		}));
 
 	return (
 		<div className="flex flex-col gap-3">
-			<ul role="radiogroup" aria-label="Choose a guide" className="flex flex-col gap-2">
-				{data.guides.map((guide) => {
-					const checked = picked === guide._id;
-					return (
-						<li key={guide._id}>
-							<label
-								className={cn(
-									"flex cursor-pointer items-center gap-3 rounded-[10px] border border-border px-3 py-2.5 transition-colors",
-									checked && "border-primary bg-accent",
-									!guide.isAvailable && "cursor-not-allowed opacity-60",
-								)}
-							>
-								<input
-									type="radio"
-									name="guide"
-									className="sr-only"
-									disabled={!guide.isAvailable}
-									checked={checked}
-									onChange={() => setPicked(guide._id)}
-								/>
-								<span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-info-soft text-[13px] font-semibold text-info">
-									{guide.picture ? <img src={guide.picture} alt="" className="size-full object-cover" /> : initials(guide.name)}
-								</span>
-								<span className="min-w-0 flex-1 leading-snug">
-									<span className="block truncate font-semibold">
-										{guide.name}
-										{guide._id === current && <span className="ml-1.5 font-normal text-primary-text">· assigned</span>}
-									</span>
-									<span className="block truncate text-[12.5px] text-muted-foreground">
-										{guide.isAvailable
-											? [`${guide.experienceYears} yr${guide.experienceYears === 1 ? "" : "s"}`, guide.languages.join(", ")].filter(Boolean).join(" · ")
-											: `Busy: ${guide.conflictWith}`}
-									</span>
-								</span>
-							</label>
-						</li>
-					);
-				})}
-			</ul>
-			<div className="flex gap-2">
-				{current && (
-					<button type="button" className={cn(btnGhost, btnSm)} disabled={isSaving} onClick={() => save(null)}>
-						Remove guide
+			{current && (
+				<div className="flex items-center gap-3 rounded-[10px] border border-primary bg-accent px-3 py-2.5">
+					<span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-info-soft text-[13px] font-semibold text-info">
+						{current.picture ? <img src={current.picture} alt="" className="size-full object-cover" /> : initials(current.name)}
+					</span>
+					<span className="min-w-0 flex-1 leading-snug">
+						<span className="block truncate font-semibold">{current.name}</span>
+						<span className="block truncate text-[12.5px] text-muted-foreground">
+							{current.phone || current.email || "Assigned guide"}
+						</span>
+					</span>
+					<button
+						type="button"
+						className={cn(btnGhost, btnSm)}
+						disabled={isSaving}
+						onClick={() => save(null)}
+					>
+						Remove
 					</button>
-				)}
-				<button
-					type="button"
-					className={cn(btnPrimary, btnSm, "ml-auto")}
-					disabled={isSaving || !picked || picked === current}
-					onClick={() => save(picked)}
-				>
-					<UserRoundCheck />
-					{current ? "Change guide" : "Assign guide"}
-				</button>
-			</div>
+				</div>
+			)}
+
+			{options.length === 0 ? (
+				<p className="rounded-[10px] bg-surface-2 px-3.5 py-3 text-[13.5px] text-muted-foreground">
+					{current ? "No other active guides to switch to." : "No active guides yet."} Make someone a Guide from{" "}
+					<Link to="/admin/users" className="font-semibold text-primary-text hover:underline">
+						Users
+					</Link>{" "}
+					or approve a{" "}
+					<Link to="/admin/guide-applications" className="font-semibold text-primary-text hover:underline">
+						guide application
+					</Link>
+					.
+				</p>
+			) : (
+				<div className="flex flex-col gap-2">
+					<label htmlFor="assign-guide" className="text-sm font-semibold">
+						{current ? "Change guide" : "Assign a guide"}
+					</label>
+					<SearchableSelect
+						id="assign-guide"
+						options={options}
+						value={picked}
+						onChange={setPicked}
+						allowDeselect={false}
+						placeholder="Search guides…"
+						searchPlaceholder="Name, email or phone"
+						emptyText="No guide found."
+						disabled={isSaving}
+						contentClassName="w-(--radix-popover-trigger-width) min-w-80"
+					/>
+					<button
+						type="button"
+						className={cn(btnPrimary, "w-full")}
+						disabled={isSaving || !picked}
+						onClick={() => save(picked)}
+					>
+						<UserRoundCheck />
+						{current ? "Change guide" : "Assign guide"}
+					</button>
+					<p className="text-[12.5px] text-muted-foreground">
+						Guides approved for {booking.tour.division?.name ?? "this division"} are listed first. Busy guides can't be
+						picked.
+					</p>
+				</div>
+			)}
 		</div>
 	);
 }
@@ -300,9 +310,9 @@ export default function BookingDetailSheet({ bookingId, onClose }: { bookingId: 
 
 	return (
 		<Sheet open={Boolean(bookingId)} onOpenChange={(open) => !open && onClose()}>
-			<SheetContent className="w-full gap-0 overflow-y-auto bg-card sm:max-w-md">
+			<SheetContent className="w-full gap-0 overflow-y-auto bg-card sm:max-w-lg">
 				<SheetHeader className="px-5 pt-5 pb-4">
-					<SheetTitle className="text-lg font-bold">{data?.bookingCode ?? "Booking"}</SheetTitle>
+					<SheetTitle className="text-lg font-bold">{data ? bookingRef(data) : "Booking"}</SheetTitle>
 					<SheetDescription>
 						{data ? `Booked by ${data.user.name}` : "Loading booking details…"}
 					</SheetDescription>

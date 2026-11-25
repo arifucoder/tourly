@@ -5,7 +5,14 @@ import { cn } from "@/lib/utils";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { useState } from "react";
 
-export type TOption = { value: string; label: string };
+export type TOption = {
+	value: string;
+	label: string;
+	description?: string;
+	hint?: string;
+	keywords?: string[];
+	disabled?: boolean;
+};
 
 type SearchableSelectProps = {
 	id?: string;
@@ -17,7 +24,9 @@ type SearchableSelectProps = {
 	emptyText?: string;
 	invalid?: boolean;
 	disabled?: boolean;
+	allowDeselect?: boolean;
 	className?: string;
+	contentClassName?: string;
 };
 
 export default function SearchableSelect({
@@ -30,7 +39,9 @@ export default function SearchableSelect({
 	emptyText = "No results found.",
 	invalid = false,
 	disabled = false,
+	allowDeselect = true,
 	className,
+	contentClassName,
 }: SearchableSelectProps) {
 	const [open, setOpen] = useState(false);
 	const [innerValue, setInnerValue] = useState("");
@@ -39,7 +50,7 @@ export default function SearchableSelect({
 	const selected = options.find((option) => option.value === selectedValue);
 
 	const handleSelect = (newValue: string) => {
-		const next = newValue === selectedValue ? "" : newValue;
+		const next = allowDeselect && newValue === selectedValue ? "" : newValue;
 		if (value === undefined) setInnerValue(next);
 		onChange?.(next);
 		setOpen(false);
@@ -67,7 +78,7 @@ export default function SearchableSelect({
 				</Button>
 			</PopoverTrigger>
 
-			<PopoverContent align="start" className="w-(--radix-popover-trigger-width) p-0">
+			<PopoverContent align="start" className={cn("w-(--radix-popover-trigger-width) p-0", contentClassName)}>
 				<Command>
 					<CommandInput placeholder={searchPlaceholder} className="h-10" />
 					<CommandList className="max-h-64">
@@ -76,11 +87,19 @@ export default function SearchableSelect({
 							{options.map((option) => (
 								<CommandItem
 									key={option.value}
-									value={option.label}
+									value={option.value}
+									keywords={[option.label, ...(option.keywords ?? [])]}
+									disabled={option.disabled}
 									onSelect={() => handleSelect(option.value)}
 									className="py-2"
 								>
-									<span className="flex-1 truncate">{option.label}</span>
+									<span className="flex min-w-0 flex-1 flex-col">
+										<span className="truncate">{option.label}</span>
+										{option.description && (
+											<span className="truncate text-[12.5px] text-muted-foreground">{option.description}</span>
+										)}
+										{option.hint && <span className="truncate text-[11.5px] text-muted-foreground/80">{option.hint}</span>}
+									</span>
 									<Check
 										className={cn("size-4 text-primary", selectedValue === option.value ? "opacity-100" : "opacity-0")}
 									/>

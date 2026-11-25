@@ -18,6 +18,7 @@ import { withAuth } from "@/utils/withAuth";
 import { withGuest } from "@/utils/withGuest";
 import { createBrowserRouter, Navigate } from "react-router";
 import { adminSidebarItems } from "./adminSidebarItems";
+import { guideSidebarItems } from "./guideSidebarItems";
 import { userSidebarItems } from "./userSidebarItems";
 
 export const router = createBrowserRouter([
@@ -48,6 +49,11 @@ export const router = createBrowserRouter([
 			{ path: "/admin/add-tour", element: <Navigate to="/admin/tours/new" replace /> },
 			{ path: "/admin/add-division", element: <Navigate to="/admin/divisions" replace /> },
 		],
+	},
+	{
+		Component: withAuth(DashboardLayout, role.guide),
+		path: "/guide",
+		children: [...generateRoutes(guideSidebarItems)],
 	},
 	{
 		Component: withAuth(DashboardLayout, role.user),

@@ -6,7 +6,7 @@ import { Pagination, SearchField, SelectField } from "@/components/dashboard/Tab
 import BookingDetailSheet from "@/components/modules/Admin/Booking/BookingDetailSheet";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { axiosInstance } from "@/lib/axios";
-import { formatDate, formatDateRange, formatNumber, formatTaka } from "@/lib/format";
+import { bookingRef, formatDate, formatDateRange, formatNumber, formatTaka } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useGetAllBookingsQuery, useGetBookingSummaryQuery } from "@/redux/features/Booking/booking.api";
 import type { TBookingStatus } from "@/types";
@@ -223,7 +223,7 @@ export default function Bookings() {
 							{bookings.map((booking) => (
 								<tr key={booking._id} className="border-b border-border last:border-0 hover:bg-surface-2/60">
 									<td className={cn(td, cell)}>
-										<div className="text-[13px] font-semibold whitespace-nowrap">{booking.bookingCode}</div>
+										<div className="text-[13px] font-semibold whitespace-nowrap">{bookingRef(booking)}</div>
 										<div className="text-[12.5px] text-muted-foreground">
 											{formatDate(booking.createdAt, { day: "numeric", month: "short" })}
 										</div>
