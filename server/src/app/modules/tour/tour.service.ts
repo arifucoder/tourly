@@ -3,6 +3,7 @@ import AppError from "../../errorHelpers/AppError";
 import { QueryBuilder } from "../../utils/QueryBuilder";
 import {
 	tourFilterableFields,
+	tourMultiValueFields,
 	tourSearchableFields,
 	tourSelectableFields,
 	tourSortableFields,
@@ -10,7 +11,7 @@ import {
 import type { ITour, ITourType } from "./tour.interface";
 import { BOOKING_STATUS } from "../booking/booking.interface";
 import { Booking } from "../booking/booking.model";
-import { countBookedSeats } from "../booking/booking.service";
+import { countBookedSeats, countBookedSeatsByTour } from "../booking/booking.service";
 import { Division } from "../division/division.model";
 import { Tour, TourType } from "./tour.model";
 import httpStatus from "http-status-codes";
@@ -27,13 +28,30 @@ const createTour = async (payload: ITour) => {
 	return tour;
 };
 
+const toPrice = (value?: string) => {
+	if (!value) return undefined;
+	const price = Number(value);
+	return Number.isFinite(price) && price >= 0 ? price : undefined;
+};
+
 const getAllTours = async (query: Record<string, string>) => {
+	const minPrice = toPrice(query.minPrice);
+	const maxPrice = toPrice(query.maxPrice);
+	const costFrom = {
+		...(minPrice !== undefined && { $gte: minPrice }),
+		...(maxPrice !== undefined && { $lte: maxPrice }),
+	};
+
 	const queryBuilder = new QueryBuilder(
-		Tour.find().populate("division", "name slug").populate("tourType", "name").lean(),
+		Tour.find(Object.keys(costFrom).length > 0 ? { costFrom } : {})
+			.populate("division", "name slug")
+			.populate("tourType", "name")
+			.lean(),
 		query,
 		{
 			searchableFields: tourSearchableFields,
 			filterableFields: tourFilterableFields,
+			multiValueFields: tourMultiValueFields,
 			sortableFields: tourSortableFields,
 			selectableFields: tourSelectableFields,
 		},
@@ -41,7 +59,13 @@ const getAllTours = async (query: Record<string, string>) => {
 
 	const tours = queryBuilder.search().filter().sort().fields().paginate();
 
-	const [data, meta] = await Promise.all([tours.build(), queryBuilder.getMeta()]);
+	const [tourList, meta] = await Promise.all([tours.build(), queryBuilder.getMeta()]);
+	const bookedSeats = await countBookedSeatsByTour(tourList.map((tour) => tour._id));
+
+	const data = tourList.map((tour) => ({
+		...tour,
+		seatsLeft: tour.maxGuest ? Math.max(tour.maxGuest - (bookedSeats.get(String(tour._id)) ?? 0), 0) : null,
+	}));
 
 	return { data, meta };
 };
@@ -64,12 +88,21 @@ const getTourFilterOptions = async () => {
 	const [result] = await Tour.aggregate<{
 		divisions: IFilterOption[];
 		tourTypes: IFilterOption[];
+		locations: { name: string; count: number }[];
+		price: { min: number; max: number }[];
 		total: { count: number }[];
 	}>([
 		{
 			$facet: {
 				divisions: countBy("division", Division.collection.name),
 				tourTypes: countBy("tourType", TourType.collection.name),
+				locations: [
+					{ $match: { location: { $nin: [null, ""] } } },
+					{ $group: { _id: "$location", count: { $sum: 1 } } },
+					{ $sort: { _id: 1 } },
+					{ $project: { _id: 0, name: "$_id", count: 1 } },
+				],
+				price: [{ $group: { _id: null, min: { $min: "$costFrom" }, max: { $max: "$costFrom" } } }],
 				total: [{ $count: "count" }],
 			},
 		},
@@ -78,6 +111,8 @@ const getTourFilterOptions = async () => {
 	return {
 		divisions: result?.divisions ?? [],
 		tourTypes: result?.tourTypes ?? [],
+		locations: result?.locations ?? [],
+		priceRange: { min: result?.price[0]?.min ?? 0, max: result?.price[0]?.max ?? 0 },
 		totalTours: result?.total[0]?.count ?? 0,
 	};
 };

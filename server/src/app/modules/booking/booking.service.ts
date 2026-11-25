@@ -62,6 +62,23 @@ export const countBookedSeats = async (tourId: Types.ObjectId | string) => {
 	return result?.seats ?? 0;
 };
 
+export const countBookedSeatsByTour = async (tourIds: (Types.ObjectId | string)[]) => {
+	if (tourIds.length === 0) return new Map<string, number>();
+	const rows = await Booking.aggregate<{ _id: Types.ObjectId; seats: number }>([
+		{
+			$match: {
+				tour: { $in: tourIds.map((id) => new Types.ObjectId(String(id))) },
+				$or: [
+					{ status: BOOKING_STATUS.COMPLETE },
+					{ status: BOOKING_STATUS.PENDING, updatedAt: { $gte: paymentHoldCutoff() } },
+				],
+			},
+		},
+		{ $group: { _id: "$tour", seats: { $sum: "$guestCount" } } },
+	]);
+	return new Map(rows.map((row) => [String(row._id), row.seats]));
+};
+
 const createBooking = async (payload: TCreateBookingPayload, userId: string) => {
 	const user = await User.findById(userId);
 

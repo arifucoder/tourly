@@ -3,6 +3,7 @@ import type { Query } from "mongoose";
 interface IQueryBuilderOptions {
 	searchableFields?: string[];
 	filterableFields?: string[];
+	multiValueFields?: string[];
 	sortableFields?: string[];
 	selectableFields?: string[];
 	defaultSort?: string;
@@ -28,6 +29,7 @@ export class QueryBuilder<T> {
 		this.options = {
 			searchableFields: [],
 			filterableFields: [],
+			multiValueFields: [],
 			sortableFields: ["createdAt"],
 			selectableFields: [],
 			defaultSort: "-createdAt",
@@ -59,11 +61,16 @@ export class QueryBuilder<T> {
 	}
 
 	filter(): this {
-		const conditions: Record<string, string> = {};
+		const conditions: Record<string, unknown> = {};
 
 		for (const field of this.options.filterableFields) {
 			const value = this.query[field];
-			if (typeof value === "string" && value.trim() !== "") {
+			if (typeof value !== "string" || value.trim() === "") continue;
+
+			if (this.options.multiValueFields.includes(field)) {
+				const values = value.split(",").map((v) => v.trim()).filter(Boolean);
+				conditions[field] = values.length > 1 ? { $in: values } : values[0];
+			} else {
 				conditions[field] = value.trim();
 			}
 		}
