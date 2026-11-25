@@ -1,7 +1,10 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-	entry: ["src/server.ts"],
+	entry: {
+		server: "src/server.ts",
+		"seed-super-admin": "src/scripts/seedSuperAdmin.ts",
+	},
 	format: ["esm"],
 	target: "esnext",
 	outDir: "dist",

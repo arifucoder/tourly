@@ -8,7 +8,9 @@
 		"build": "tsup",
 		"build:tsup": "tsup",
 		"start": "node dist/server.js",
-		"lint": "npx eslint ./src"
+		"lint": "npx eslint ./src",
+		"seed:admin": "tsx src/scripts/seedSuperAdmin.ts",
+		"seed:admin:prod": "node dist/seed-super-admin.js"
 	},
 	"keywords": [],
 	"author": "",
