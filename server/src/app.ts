@@ -10,6 +10,7 @@ import { globalErrorHandler } from "./app/middlewares/globalErrorHandler";
 import notFound from "./app/middlewares/notFound";
 import { apiLimiter, authLimiter } from "./app/middlewares/rateLimiter";
 import { router } from "./app/routes";
+import { healthCheck } from "./app/routes/health";
 
 const app = express();
 
@@ -26,6 +27,8 @@ app.use(express.json({ limit: "100kb" }));
 app.use(express.urlencoded({ extended: true, limit: "100kb" }));
 app.use(cookieParser());
 app.use(passport.initialize());
+
+app.get("/api/v1/health", healthCheck);
 
 app.use("/api/v1", apiLimiter);
 app.use(["/api/v1/auth/login", "/api/v1/auth/forgot-password", "/api/v1/otp", "/api/v1/user/register"], authLimiter);
