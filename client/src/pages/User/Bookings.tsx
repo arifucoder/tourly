@@ -14,6 +14,7 @@ import type { TBookingStatus } from "@/types";
 import { CalendarCheck, CalendarClock, FileText, ImageIcon, Ticket, Wallet } from "lucide-react";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
+import { useOpenInvoice } from "@/hooks/useOpenInvoice";
 
 const LIMIT = 10;
 const COLS = 7;
@@ -31,6 +32,7 @@ const TABS: { key: TTab; label: string }[] = [
 const isTab = (value: string | null): value is TTab => TABS.some((tab) => tab.key === value);
 
 export default function Bookings() {
+	const { openInvoice, openingId } = useOpenInvoice();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const tabParam = searchParams.get("status");
 	const tab: TTab = isTab(tabParam) ? tabParam : "ALL";
@@ -142,7 +144,8 @@ export default function Bookings() {
 							{bookings.map((booking) => {
 								const tour = booking.tour;
 								const payable = canPay(booking);
-								const invoice = booking.payment?.status === "PAID" ? booking.payment.invoiceUrl : undefined;
+								const invoice =
+									booking.payment?.status === "PAID" && booking.payment.invoiceUrl ? booking.payment._id : undefined;
 								return (
 									<tr key={booking._id} className="border-b border-border last:border-0 hover:bg-surface-2/60">
 										<td className={td}>
@@ -193,16 +196,16 @@ export default function Bookings() {
 													</button>
 												)}
 												{invoice && (
-													<a
-														href={invoice}
-														target="_blank"
-														rel="noreferrer"
+													<button
+														type="button"
+														onClick={() => openInvoice(invoice)}
+														disabled={openingId === invoice}
 														className={iconBtn}
 														aria-label="Open invoice"
 														title="Invoice (PDF)"
 													>
 														<FileText />
-													</a>
+													</button>
 												)}
 												<Link to={`/user/bookings/${booking._id}`} className={cn(btnGhost, btnSm)}>
 													Details

@@ -28,6 +28,7 @@ import { CircleX, ExternalLink, FileText, UserRoundCheck } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
+import { useOpenInvoice } from "@/hooks/useOpenInvoice";
 
 function Section({ title, children, aside }: { title: string; children: ReactNode; aside?: ReactNode }) {
 	return (
@@ -162,6 +163,7 @@ function GuidePicker({ booking }: { booking: IBookingDetail }) {
 }
 
 function BookingBody({ booking }: { booking: IBookingDetail }) {
+	const { openInvoice, openingId } = useOpenInvoice();
 	const [confirmCancel, setConfirmCancel] = useState(false);
 	const [updateStatus, { isLoading }] = useUpdateBookingStatusMutation();
 
@@ -215,15 +217,15 @@ function BookingBody({ booking }: { booking: IBookingDetail }) {
 							<Row
 								k="Invoice"
 								v={
-									<a
-										href={payment.invoiceUrl}
-										target="_blank"
-										rel="noreferrer"
-										className="inline-flex items-center gap-1.5 text-primary-text hover:underline"
+									<button
+										type="button"
+										onClick={() => openInvoice(payment._id)}
+										disabled={openingId === payment._id}
+										className="inline-flex items-center gap-1.5 text-primary-text hover:underline disabled:opacity-60"
 									>
 										<FileText className="size-4" />
 										Open PDF
-									</a>
+									</button>
 								}
 							/>
 						)}

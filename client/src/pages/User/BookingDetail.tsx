@@ -22,6 +22,7 @@ import { ArrowLeft, CircleX, Download, ImageIcon, Mail, Phone } from "lucide-rea
 import { useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
 import { toast } from "sonner";
+import { useOpenInvoice } from "@/hooks/useOpenInvoice";
 
 const longDate = (date?: string) => formatDate(date, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 
@@ -161,6 +162,7 @@ function DetailSkeleton() {
 }
 
 export default function BookingDetail() {
+	const { openInvoice, openingId } = useOpenInvoice();
 	const { bookingId = "" } = useParams();
 	const { data: booking, isLoading, isError, refetch } = useGetBookingQuery(bookingId, { skip: !bookingId });
 	const [cancelBooking, { isLoading: isCancelling }] = useCancelMyBookingMutation();
@@ -221,10 +223,15 @@ export default function BookingDetail() {
 						View tour page
 					</Link>
 					{paid && payment?.invoiceUrl && (
-						<a href={payment.invoiceUrl} target="_blank" rel="noreferrer" className={btnPrimary}>
+						<button
+							type="button"
+							onClick={() => openInvoice(payment._id)}
+							disabled={openingId === payment._id}
+							className={btnPrimary}
+						>
 							<Download />
 							Download invoice
-						</a>
+						</button>
 					)}
 					{canPay(booking) && (
 						<button type="button" className={btnPrimary} disabled={Boolean(payingId)} onClick={() => pay(booking._id)}>
