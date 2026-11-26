@@ -1,3 +1,41 @@
-<h2>Hello <%= name %>,</h2>
-<p>Your OTP code is: <strong><%= otp %></strong></p>
-<p>This code is valid for 2 minutes.</p>
+<h1 class="h1" style="margin: 0 0 12px 0; font-family: Arial, Helvetica, sans-serif; font-size: 26px; line-height: 32px; font-weight: bold; color: #2d3134">
+	Verify your email
+</h1>
+
+<p style="margin: 0 0 24px 0">
+	Hi <%= name %>, welcome to Tourly! Enter this code on the verification screen to activate your account and start
+	booking tours.
+</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: separate">
+	<tr>
+		<td align="center" style="padding: 24px 16px; background-color: #fff1e8; border: 1px solid #ffd2b5; border-radius: 12px">
+			<div style="font-family: Arial, Helvetica, sans-serif; font-size: 12px; line-height: 16px; font-weight: bold; letter-spacing: 2px; color: #c2410c">
+				YOUR VERIFICATION CODE
+			</div>
+			<div
+				class="code"
+				style="padding: 10px 0 6px 10px; font-family: Arial, Helvetica, sans-serif; font-size: 40px; line-height: 48px; font-weight: bold; letter-spacing: 10px; color: #2d3134"
+			>
+				<%= otp %>
+			</div>
+			<div style="font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 20px; color: #4a4e51">
+				Expires in <strong><%= expiresInMinutes %> minutes</strong>
+			</div>
+		</td>
+	</tr>
+</table>
+
+<p style="margin: 24px 0">
+	Code expired? Go back to the verify screen and press <strong style="color: #2d3134">Resend code</strong>. Each new code
+	replaces the old one.
+</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: separate">
+	<tr>
+		<td style="padding: 14px 16px; background-color: #f7f7f7; border-radius: 10px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 21px; color: #676a6c">
+			<strong style="color: #2d3134">Didn't sign up?</strong> You can safely ignore this email. Tourly will never ask for
+			this code by phone or message.
+		</td>
+	</tr>
+</table>

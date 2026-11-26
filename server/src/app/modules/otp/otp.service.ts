@@ -33,11 +33,13 @@ const sendOTP = async (email: string, name: string) => {
 
 	await sendEmail({
 		to: email,
-		subject: "Your OTP Code",
+		subject: `${otp} is your Tourly verification code`,
 		templateName: "otp",
+		previewText: `Use ${otp} to verify your email. It expires in ${OTP_EXPIRATION / 60} minutes.`,
 		templateData: {
 			name: name,
 			otp: otp,
+			expiresInMinutes: OTP_EXPIRATION / 60,
 		},
 	});
 };
