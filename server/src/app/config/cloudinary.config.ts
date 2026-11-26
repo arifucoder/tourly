@@ -77,4 +77,18 @@ export const deleteImageFromCLoudinary = async (url: string) => {
 	}
 };
 
+const INVOICE_LINK_TTL_SECONDS = 60 * 60;
+
+export const getSignedDownloadUrl = (url: string, ttlSeconds = INVOICE_LINK_TTL_SECONDS) => {
+	const match = url.match(/\/(image|raw|video)\/upload\/(?:v\d+\/)?(.+?)\.([a-z0-9]+)$/i);
+	if (!match) return url;
+
+	const [, resourceType, publicId, format] = match;
+	return cloudinary.utils.private_download_url(publicId as string, format as string, {
+		resource_type: resourceType,
+		type: "upload",
+		expires_at: Math.floor(Date.now() / 1000) + ttlSeconds,
+	});
+};
+
 export const cloudinaryUpload = cloudinary;
