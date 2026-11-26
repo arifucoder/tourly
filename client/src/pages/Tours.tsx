@@ -3,11 +3,11 @@ import TourFilters, { type TTourFilters } from "@/components/modules/Tour/TourFi
 import { countActiveFilters, emptyTourFilters } from "@/components/modules/Tour/tourFilters.utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { inputCls, outlineBtn, primaryBtn, squareBtn } from "@/lib/ui-classes";
+import { inputCls, outlineBtn, primaryBtn } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
-import { useGetTourFilterOptionsQuery, useGetToursQuery } from "@/redux/features/Tour/tour.api";
-import { AlertCircle, ChevronLeft, ChevronRight, RefreshCw, Search, SearchX } from "lucide-react";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useGetTourFilterOptionsQuery, useGetTourPagesInfiniteQuery } from "@/redux/features/Tour/tour.api";
+import { AlertCircle, Loader2, RefreshCw, Search, SearchX } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
 
 const LIMIT = 12;
@@ -20,18 +20,19 @@ const SORT_OPTIONS = [
 
 const gridCls = "grid grid-cols-[repeat(auto-fill,minmax(min(250px,100%),1fr))] gap-6";
 
-const squareActive =
-	"border-primary bg-primary text-primary-foreground shadow-[0_10px_22px_rgb(255_123_41/0.25)] hover:border-primary";
-
-const getPageNumbers = (current: number, total: number): (number | "…")[] => {
-	if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-	const pages: (number | "…")[] = [1];
-	if (current > 3) pages.push("…");
-	for (let p = Math.max(2, current - 1); p <= Math.min(total - 1, current + 1); p++) pages.push(p);
-	if (current < total - 2) pages.push("…");
-	pages.push(total);
-	return pages;
-};
+function TourCardSkeleton() {
+	return (
+		<div className="overflow-hidden rounded-[14px] bg-card shadow-soft">
+			<Skeleton className="h-50 rounded-none" />
+			<div className="flex flex-col gap-2.5 p-4.5">
+				<Skeleton className="h-3.5 w-28" />
+				<Skeleton className="h-5 w-full" />
+				<Skeleton className="h-3.5 w-40" />
+				<Skeleton className="mt-2 h-6 w-24" />
+			</div>
+		</div>
+	);
+}
 
 const filtersFromParams = (params: URLSearchParams): TTourFilters => ({
 	divisions: params.get("division")?.split(",").filter(Boolean) ?? [],
@@ -56,11 +57,9 @@ export default function Tours() {
 	const [applied, setApplied] = useState<TTourFilters>(() => filtersFromParams(searchParams));
 	const [draft, setDraft] = useState<TTourFilters>(applied);
 	const [sort, setSort] = useState("-createdAt");
-	const [page, setPage] = useState(1);
 	const [sheetOpen, setSheetOpen] = useState(false);
 
-	const { data, isLoading, isError, isFetching, refetch } = useGetToursQuery({
-		page,
+	const tourQuery = {
 		limit: LIMIT,
 		sort,
 		...(searchTerm && { searchTerm }),
@@ -69,37 +68,47 @@ export default function Tours() {
 		...(applied.location && { location: applied.location }),
 		...(applied.minPrice !== undefined && { minPrice: applied.minPrice }),
 		...(applied.maxPrice !== undefined && { maxPrice: applied.maxPrice }),
-	});
+	};
+	const { data, isLoading, isError, isFetching, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
+		useGetTourPagesInfiniteQuery(tourQuery);
 	const { data: filterOptions } = useGetTourFilterOptionsQuery();
 
-	const tours = data?.data ?? [];
-	const total = data?.meta?.total ?? 0;
-	const totalPage = data?.meta?.totalPage ?? 1;
+	const tours = data?.pages.flatMap((pageData) => pageData.data) ?? [];
+	const total = data?.pages[0]?.meta?.total ?? 0;
 	const activeCount = countActiveFilters(applied);
+
+	// load the next page when the sentinel below the grid comes near the viewport
+	const sentinelRef = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		const sentinel = sentinelRef.current;
+		if (!sentinel || !hasNextPage) return;
+
+		const observer = new IntersectionObserver(
+			([entry]) => {
+				if (entry?.isIntersecting && !isFetchingNextPage) void fetchNextPage();
+			},
+			{ rootMargin: "400px 0px" },
+		);
+		observer.observe(sentinel);
+		return () => observer.disconnect();
+	}, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
 	const handleSearch = (e: FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		setSearchTerm(searchInput.trim());
-		setPage(1);
 	};
 	const handleApply = () => {
 		setApplied(draft);
-		setPage(1);
 		setSheetOpen(false);
 	};
 	const handleReset = () => {
 		setDraft(emptyTourFilters);
 		setApplied(emptyTourFilters);
-		setPage(1);
 	};
 	const handleClearAll = () => {
 		handleReset();
 		setSearchInput("");
 		setSearchTerm("");
-	};
-	const goToPage = (p: number) => {
-		setPage(p);
-		window.scrollTo({ top: 0, behavior: "smooth" });
 	};
 
 	const filterProps = {
@@ -212,7 +221,6 @@ export default function Tours() {
 								value={sort}
 								onChange={(e) => {
 									setSort(e.target.value);
-									setPage(1);
 								}}
 								className={cn(inputCls, "w-auto min-w-47.5 flex-1")}
 							>
@@ -228,15 +236,7 @@ export default function Tours() {
 					{isLoading && (
 						<div className={gridCls}>
 							{Array.from({ length: 6 }).map((_, i) => (
-								<div key={i} className="overflow-hidden rounded-[14px] bg-card shadow-soft">
-									<Skeleton className="h-50 rounded-none" />
-									<div className="flex flex-col gap-2.5 p-4.5">
-										<Skeleton className="h-3.5 w-28" />
-										<Skeleton className="h-5 w-full" />
-										<Skeleton className="h-3.5 w-40" />
-										<Skeleton className="mt-2 h-6 w-24" />
-									</div>
-								</div>
+								<TourCardSkeleton key={i} />
 							))}
 						</div>
 					)}
@@ -273,54 +273,41 @@ export default function Tours() {
 					)}
 
 					{!isLoading && !isError && tours.length > 0 && (
-						<div className={cn(gridCls, "transition-opacity", isFetching && "opacity-60")}>
-							{tours.map((tour) => (
-								<TourCard key={tour._id} tour={tour} />
-							))}
-						</div>
-					)}
-
-					{!isLoading && !isError && totalPage > 1 && (
-						<nav aria-label="Pagination" className="flex flex-wrap justify-center gap-2 pt-4">
-							<button
-								type="button"
-								onClick={() => goToPage(page - 1)}
-								disabled={page === 1 || isFetching}
-								aria-label="Previous page"
-								className={squareBtn}
+						<>
+							<div
+								className={cn(gridCls, "transition-opacity", isFetching && !isFetchingNextPage && "opacity-60")}
 							>
-								<ChevronLeft className="size-4.5" strokeWidth={2.2} />
-							</button>
+								{tours.map((tour) => (
+									<TourCard key={tour._id} tour={tour} />
+								))}
+								{isFetchingNextPage &&
+									Array.from({ length: 3 }).map((_, i) => <TourCardSkeleton key={`next-${i}`} />)}
+							</div>
 
-							{getPageNumbers(page, totalPage).map((p, i) =>
-								p === "…" ? (
-									<span key={`dots-${i}`} className={cn(squareBtn, "border-transparent bg-transparent")}>
-										…
-									</span>
-								) : (
+							<div ref={sentinelRef} className="flex justify-center pt-2" aria-live="polite">
+								{hasNextPage ? (
 									<button
-										key={p}
 										type="button"
-										onClick={() => goToPage(p)}
-										disabled={isFetching}
-										aria-current={p === page ? "page" : undefined}
-										className={cn(squareBtn, p === page && squareActive)}
+										onClick={() => void fetchNextPage()}
+										disabled={isFetchingNextPage}
+										className={outlineBtn}
 									>
-										{p}
+										{isFetchingNextPage ? (
+											<>
+												<Loader2 className="size-4 animate-spin" />
+												Loading more tours…
+											</>
+										) : (
+											"Load more tours"
+										)}
 									</button>
-								),
-							)}
-
-							<button
-								type="button"
-								onClick={() => goToPage(page + 1)}
-								disabled={page >= totalPage || isFetching}
-								aria-label="Next page"
-								className={squareBtn}
-							>
-								<ChevronRight className="size-4.5" strokeWidth={2.2} />
-							</button>
-						</nav>
+								) : (
+									<p className="text-[13.5px] text-muted-foreground">
+										You've seen all {total} {total === 1 ? "tour" : "tours"}.
+									</p>
+								)}
+							</div>
+						</>
 					)}
 				</main>
 			</div>

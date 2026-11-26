@@ -28,6 +28,24 @@ export const tourApi = baseApi.injectEndpoints({
 				meta: response.meta,
 			}),
 		}),
+		// public tour list: loads the next page as the user scrolls
+		getTourPages: builder.infiniteQuery<{ data: ITour[]; meta: IMeta }, Omit<TToursParams, "page">, number>({
+			infiniteQueryOptions: {
+				initialPageParam: 1,
+				getNextPageParam: (lastPage, _allPages, lastPageParam) =>
+					lastPageParam < (lastPage.meta?.totalPage ?? 1) ? lastPageParam + 1 : undefined,
+			},
+			query: ({ queryArg, pageParam }) => ({
+				url: "/tour",
+				method: "GET",
+				params: { ...queryArg, page: pageParam },
+			}),
+			providesTags: ["TOUR"],
+			transformResponse: (response: IResponse<ITour[]> & { meta: IMeta }) => ({
+				data: response.data,
+				meta: response.meta,
+			}),
+		}),
 		getTourFilterOptions: builder.query<ITourFilterOptions, TTourStatus | void>({
 			query: (status) => ({
 				url: "/tour/filter-options",
@@ -119,6 +137,7 @@ export const {
 	useGetSingleTourQuery,
 	useGetTrendingToursQuery,
 	useGetToursQuery,
+	useGetTourPagesInfiniteQuery,
 	useRemoveTourMutation,
 	useAddTourMutation,
 	useGetTourTypesQuery,
