@@ -17,7 +17,7 @@ import type { IGuideApplication, IMe, TApiError } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { BadgeCheck, Clock3, Phone, X } from "lucide-react";
 import { useState, type KeyboardEvent } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import * as z from "zod";
@@ -161,7 +161,7 @@ function ApplyForm({ me }: { me: IMe }) {
 		defaultValues: { division: "", experienceYears: undefined, languages: [], message: "" },
 	});
 	const { errors, isSubmitting } = form.formState;
-	const message = form.watch("message") ?? "";
+	const message = useWatch({ control: form.control, name: "message" }) ?? "";
 	const hasPhone = Boolean(me.phone);
 
 	const onSubmit = async (data: FormValues) => {

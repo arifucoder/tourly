@@ -13,6 +13,8 @@ const segField =
 	"block min-h-7 w-full border-0 bg-transparent pt-1 text-[13px] text-muted-foreground outline-none placeholder:text-muted-foreground";
 const seg = "min-w-0 flex-1 border-b border-border px-1 py-2.5 sm:border-0 sm:px-5 sm:py-0";
 
+const month = new Date().toLocaleDateString("en-GB", { month: "long" });
+
 export default function Hero() {
 	const navigate = useNavigate();
 	const { data: stats, isLoading: statsLoading } = useGetPublicStatsQuery();
@@ -21,7 +23,6 @@ export default function Hero() {
 	const [division, setDivision] = useState("");
 	const [tourType, setTourType] = useState("");
 
-	const month = new Date().toLocaleDateString("en-GB", { month: "long" });
 	const departures = stats?.departuresThisMonth ?? 0;
 	const share = stats?.tours ? Math.min(100, Math.round((departures / stats.tours) * 100)) : 0;
 

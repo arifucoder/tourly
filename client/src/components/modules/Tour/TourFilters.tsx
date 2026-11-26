@@ -10,12 +10,6 @@ export type TTourFilters = {
 	maxPrice?: number;
 };
 
-export const emptyTourFilters: TTourFilters = { divisions: [], tourType: "", location: "" };
-
-export const countActiveFilters = (f: TTourFilters) =>
-	f.divisions.length + Number(Boolean(f.tourType)) + Number(Boolean(f.location)) +
-	Number(f.minPrice !== undefined || f.maxPrice !== undefined);
-
 const thumb =
 	"[&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:size-5 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-[3px] [&::-webkit-slider-thumb]:border-primary [&::-webkit-slider-thumb]:bg-card [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:box-border [&::-moz-range-thumb]:size-5 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-[3px] [&::-moz-range-thumb]:border-primary [&::-moz-range-thumb]:bg-card";
 

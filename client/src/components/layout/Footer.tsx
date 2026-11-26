@@ -3,6 +3,8 @@ import { siteContact } from "@/constants/site";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { Link } from "react-router";
 
+const currentYear = new Date().getFullYear();
+
 const footerSections = [
 	{
 		title: "Explore",
@@ -67,7 +69,7 @@ export default function Footer() {
 				<div className="flex flex-col items-center justify-between gap-4.5 border-t border-border pt-6 sm:flex-row">
 					<Logo size="sm" />
 					<span className="text-center text-[13px] text-muted-foreground">
-						© {new Date().getFullYear()} Tourly. All rights reserved.
+						© {currentYear} Tourly. All rights reserved.
 					</span>
 					<div className="flex gap-2.5">
 						{contactLinks.map(({ label, href, Icon, external }) => (

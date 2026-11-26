@@ -20,7 +20,7 @@ import type { ITour, TApiError } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { Controller, useForm, type FieldErrors } from "react-hook-form";
+import { Controller, useForm, useWatch, type FieldErrors } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import * as z from "zod";
@@ -167,8 +167,8 @@ function TourEditor({ tour }: { tour?: ITour }) {
 		defaultValues: toValues(tour),
 	});
 	const { errors, submitCount } = form.formState;
-	const title = form.watch("title");
-	const startDate = form.watch("startDate");
+	const title = useWatch({ control: form.control, name: "title" });
+	const startDate = useWatch({ control: form.control, name: "startDate" });
 
 	const fieldProps = (name: keyof FormValues) => ({
 		id: `tf-${name}`,

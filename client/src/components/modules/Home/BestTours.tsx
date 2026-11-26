@@ -4,7 +4,8 @@ import { useGetToursQuery } from "@/redux/features/Tour/tour.api";
 import type { ITour } from "@/types";
 import { CalendarDays, Clock, ImageIcon, MapPin } from "lucide-react";
 import { Link } from "react-router";
-import { btnOrange, container, SectionHead, sectionTop, tourDays } from "./shared";
+import { tourDays } from "@/lib/format";
+import { btnOrange, container, SectionHead, sectionTop } from "./shared";
 
 const meta = "inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground";
 

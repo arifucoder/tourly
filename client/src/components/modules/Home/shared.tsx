@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import type { ITour } from "@/types";
 import type { ReactNode } from "react";
 
 export const container = "mx-auto w-full max-w-300 px-4 sm:px-10";
@@ -8,13 +7,6 @@ export const sectionTop = "pt-18 sm:pt-28";
 
 export const btnOrange =
 	"inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6.5 text-[15px] font-semibold whitespace-nowrap text-primary-foreground shadow-[0_14px_28px_rgb(255_123_41/0.32)] transition-colors hover:bg-primary-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none";
-
-export const tourDays = (tour: ITour) => {
-	if (!tour.startDate) return null;
-	const end = tour.endDate ?? tour.startDate;
-	const days = Math.round((new Date(end).getTime() - new Date(tour.startDate).getTime()) / 86_400_000) + 1;
-	return `${days} ${days === 1 ? "day" : "days"}`;
-};
 
 export function SectionHead({
 	title,

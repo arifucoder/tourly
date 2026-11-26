@@ -17,7 +17,7 @@ import { Link } from "react-router";
 
 export type TMenuUser = { name?: string; email?: string; picture?: string; role?: TRole };
 
-export const accountBase = (userRole?: TRole) => {
+const accountBase = (userRole?: TRole) => {
 	if (userRole === role.admin || userRole === role.superAdmin) return "/admin";
 	if (userRole === role.guide) return "/guide";
 	return "/user";

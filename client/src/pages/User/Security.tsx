@@ -2,13 +2,14 @@ import FormField from "@/components/dashboard/FormField";
 import PageHeader from "@/components/dashboard/PageHeader";
 import { btnPrimary, dashCard } from "@/components/dashboard/styles";
 import PasswordInput from "@/components/modules/Authentication/PasswordInput";
-import PasswordRules, { passwordRules } from "@/components/modules/Authentication/PasswordRules";
+import PasswordRules from "@/components/modules/Authentication/PasswordRules";
+import { passwordRules } from "@/constants/passwordRules";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useChangePasswordMutation, useSetPasswordMutation, useUserInfoQuery } from "@/redux/features/auth/auth.api";
 import type { IMe, TApiError } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import * as z from "zod";
@@ -51,7 +52,7 @@ function ChangePasswordForm() {
 		defaultValues: { oldPassword: "", newPassword: "", confirm: "" },
 	});
 	const { errors, isSubmitting } = form.formState;
-	const newPassword = form.watch("newPassword");
+	const newPassword = useWatch({ control: form.control, name: "newPassword" });
 
 	const onSubmit = async ({ oldPassword, newPassword }: TChange) => {
 		try {
@@ -114,7 +115,7 @@ function SetPasswordForm({ email }: { email: string }) {
 	const [setPassword] = useSetPasswordMutation();
 	const form = useForm<TSet>({ resolver: zodResolver(setSchema), defaultValues: { password: "", confirm: "" } });
 	const { errors, isSubmitting } = form.formState;
-	const password = form.watch("password");
+	const password = useWatch({ control: form.control, name: "password" });
 
 	const onSubmit = async ({ password }: TSet) => {
 		try {

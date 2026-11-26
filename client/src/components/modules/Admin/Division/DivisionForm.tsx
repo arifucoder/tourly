@@ -5,7 +5,7 @@ import { useAddDivisionMutation, useUpdateDivisionMutation } from "@/redux/featu
 import type { IDivision, TApiError } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle } from "lucide-react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 
@@ -57,7 +57,7 @@ export default function DivisionForm({ division, onDone }: { division: IDivision
 		defaultValues: { name: division?.name ?? "", description: division?.description ?? "", thumbnail: undefined },
 	});
 	const { errors } = form.formState;
-	const name = form.watch("name");
+	const name = useWatch({ control: form.control, name: "name" });
 
 	const onSubmit = async (data: FormValues) => {
 		const formData = new FormData();

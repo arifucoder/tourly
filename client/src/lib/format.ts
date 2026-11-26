@@ -1,3 +1,5 @@
+import type { ITour } from "@/types";
+
 const DATE_LOCALE = "en-GB";
 
 export const formatTaka = (amount?: number | null) =>
@@ -73,3 +75,10 @@ export const tripPhase = (start?: string, end?: string, now = Date.now()): TTrip
 
 export const bookingRef = (booking: { _id: string; bookingCode?: string }) =>
 	booking.bookingCode || `#${booking._id.slice(-6).toUpperCase()}`;
+
+export const tourDays = (tour: ITour) => {
+	if (!tour.startDate) return null;
+	const end = tour.endDate ?? tour.startDate;
+	const days = Math.round((new Date(end).getTime() - new Date(tour.startDate).getTime()) / 86_400_000) + 1;
+	return `${days} ${days === 1 ? "day" : "days"}`;
+};

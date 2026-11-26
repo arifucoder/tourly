@@ -5,7 +5,8 @@ import type { ITour } from "@/types";
 import { ArrowLeft, ArrowRight, ImageIcon, Send } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
-import { container, SectionHead, sectionTop, tourDays } from "./shared";
+import { tourDays } from "@/lib/format";
+import { container, SectionHead, sectionTop } from "./shared";
 
 const PAGE_SIZE = 4;
 

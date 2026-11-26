@@ -1,9 +1,6 @@
 import TourCard from "@/components/modules/Tour/TourCard";
-import TourFilters, {
-	countActiveFilters,
-	emptyTourFilters,
-	type TTourFilters,
-} from "@/components/modules/Tour/TourFilters";
+import TourFilters, { type TTourFilters } from "@/components/modules/Tour/TourFilters";
+import { countActiveFilters, emptyTourFilters } from "@/components/modules/Tour/tourFilters.utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { inputCls, outlineBtn, primaryBtn, squareBtn } from "@/lib/ui-classes";
