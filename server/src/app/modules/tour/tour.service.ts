@@ -272,7 +272,49 @@ const deleteTourType = async (id: string) => {
 	return await TourType.findByIdAndDelete(id);
 };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+const DHAKA_OFFSET_MS = 6 * 60 * 60 * 1000;
+
+const daysFromKey = (key: string, spreadDays: number) => {
+	if (spreadDays <= 0) return 0;
+	let hash = 0;
+	for (const char of key) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+	return hash % (spreadDays + 1);
+};
+
+// Moves expired auto-rollover tours to a new start date (lead + 0..spread days from today, Dhaka time),
+// keeping their departure time and trip length.
+const rolloverExpiredTours = async ({ leadDays, spreadDays }: { leadDays: number; spreadDays: number }, now = new Date()) => {
+	const tours = await Tour.find({ autoRollover: true, $or: [{ startDate: { $lt: now } }, { startDate: null }] })
+		.select("slug startDate endDate")
+		.lean();
+
+	if (tours.length === 0) return 0;
+
+	const todayDhaka = Math.floor((now.getTime() + DHAKA_OFFSET_MS) / DAY_MS) * DAY_MS - DHAKA_OFFSET_MS;
+
+	const operations = tours.map((tour) => {
+		const start = tour.startDate?.getTime();
+		const timeOfDay = start === undefined ? 8 * 60 * 60 * 1000 : (start + DHAKA_OFFSET_MS) % DAY_MS;
+		const offsetDays = leadDays + daysFromKey(`${tour.slug ?? tour._id}:${todayDhaka}`, spreadDays);
+		const startDate = new Date(todayDhaka + offsetDays * DAY_MS + timeOfDay);
+		const endDate =
+			start !== undefined && tour.endDate ? new Date(startDate.getTime() + Math.max(0, tour.endDate.getTime() - start)) : undefined;
+
+		return {
+			updateOne: {
+				filter: { _id: tour._id },
+				update: { $set: { startDate, ...(endDate && { endDate }) } },
+			},
+		};
+	});
+
+	await Tour.bulkWrite(operations);
+	return operations.length;
+};
+
 export const TourService = {
+	rolloverExpiredTours,
 	getTrendingTours,
 	getTourFilterOptions,
 	createTour,
