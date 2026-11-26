@@ -152,6 +152,9 @@ const notifyApplicant = async (application: Awaited<ReturnType<typeof getApplica
 		to: user.email,
 		subject: approved ? "You're now a Tourly guide" : "Update on your Tourly guide application",
 		templateName: "guideApplicationResult",
+		previewText: approved
+			? "Your guide application was approved — here's what happens next."
+			: "We've reviewed your guide application.",
 		templateData: {
 			name: user.name,
 			approved,
