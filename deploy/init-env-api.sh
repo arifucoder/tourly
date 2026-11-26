@@ -75,6 +75,7 @@ TOUR_ROLLOVER_CHECK_HOURS=6
 TOUR_ROLLOVER_LEAD_DAYS=3
 TOUR_ROLLOVER_SPREAD_DAYS=21
 SEED_DEMO_PASSWORD=Tourly@2026
+UNSPLASH_ACCESS_KEY=
 EOF
 
 echo "✓ Created ~/apps/tourly/.env.api for ${DOMAIN} — now fill in the empty keys"

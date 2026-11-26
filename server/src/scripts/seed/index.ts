@@ -24,7 +24,7 @@ import {
 	users,
 	type TSeedUserKey,
 } from "./data";
-import { resolveImage, resolveImages } from "./images";
+import { resolveAllImages } from "./images";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DHAKA_OFFSET_MS = 6 * 60 * 60 * 1000;
@@ -41,6 +41,16 @@ const tripStart = (inDays: number) => new Date(todayDhaka + inDays * DAY_MS + DE
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const byName = (name: string) => ({ name: { $regex: `^${escapeRegex(name)}$`, $options: "i" } });
+
+// A tour's own photos; if none could be loaded, photos from the same division, then any loaded photo.
+const pickImages = (item: (typeof tours)[number], resolved: Map<string, string>) => {
+	const urls = (ids: string[]) => ids.map((id) => resolved.get(id)).filter((url): url is string => Boolean(url));
+	const own = urls(item.images);
+	if (own.length > 0) return own;
+
+	const sameDivision = urls(tours.filter((tour) => tour.division === item.division).flatMap((tour) => tour.images));
+	return sameDivision.length > 0 ? sameDivision.slice(0, 2) : [...resolved.values()].slice(0, 1);
+};
 
 const must = <T>(map: Map<string, T>, key: string, label: string) => {
 	const value = map.get(key);
@@ -170,7 +180,11 @@ const seedUsers = async (hash: (plain: string) => Promise<string>) => {
 	return ids;
 };
 
-const seedTours = async (divisionIds: Map<string, Types.ObjectId>, typeIds: Map<string, Types.ObjectId>) => {
+const seedTours = async (
+	divisionIds: Map<string, Types.ObjectId>,
+	typeIds: Map<string, Types.ObjectId>,
+	images: Map<string, string>,
+) => {
 	const ids = new Map<string, { _id: Types.ObjectId; costFrom: number }>();
 	let created = 0;
 
@@ -189,7 +203,7 @@ const seedTours = async (divisionIds: Map<string, Types.ObjectId>, typeIds: Map<
 		const tour = await Tour.create({
 			title: item.title,
 			description: item.description,
-			images: await resolveImages(item.images, UPLOAD),
+			images: pickImages(item, images),
 			location: item.location,
 			departureLocation: item.departureLocation,
 			arrivalLocation: item.arrivalLocation,
@@ -215,15 +229,15 @@ const seedTours = async (divisionIds: Map<string, Types.ObjectId>, typeIds: Map<
 	return ids;
 };
 
-const seedDivisionThumbnails = async (divisionIds: Map<string, Types.ObjectId>) => {
+const seedDivisionThumbnails = async (divisionIds: Map<string, Types.ObjectId>, images: Map<string, string>) => {
 	for (const [name, _id] of divisionIds) {
 		const division = await Division.findById(_id).select("thumbnail").lean();
-		if (division?.thumbnail) continue;
+		// replace thumbnails from the old random placeholder source too
+		if (division?.thumbnail && !division.thumbnail.includes("picsum.photos")) continue;
 
-		const photoId = tours.find((tour) => tour.division === name && tour.autoRollover)?.images[0];
-		if (!photoId) continue;
-
-		await Division.updateOne({ _id }, { $set: { thumbnail: await resolveImage(photoId, UPLOAD) } });
+		const tour = tours.find((item) => item.division === name && item.autoRollover);
+		const thumbnail = tour && pickImages(tour, images)[0];
+		if (thumbnail) await Division.updateOne({ _id }, { $set: { thumbnail } });
 	}
 };
 
@@ -330,8 +344,13 @@ const run = async () => {
 		await seedSuperAdmin(hash);
 		const divisionIds = await seedDivisions();
 		const typeIds = await seedTourTypes();
-		const tourIds = await seedTours(divisionIds, typeIds);
-		await seedDivisionThumbnails(divisionIds);
+		const images = await resolveAllImages(
+			tours.flatMap((tour) => tour.images),
+			UPLOAD,
+		);
+		console.log(`Images ready: ${images.size}`);
+		const tourIds = await seedTours(divisionIds, typeIds, images);
+		await seedDivisionThumbnails(divisionIds, images);
 		const userIds = await seedUsers(hash);
 
 		const demoUserIds = [...userIds.values()];
