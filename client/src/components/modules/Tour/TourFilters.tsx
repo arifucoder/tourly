@@ -1,6 +1,7 @@
-import { inputCls, primaryBtn } from "@/lib/ui-classes";
+import { inputCls } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
 import type { ITourFilterOptions } from "@/types";
+import type { ReactNode } from "react";
 
 export type TTourFilters = {
 	divisions: string[];
@@ -85,12 +86,13 @@ type TourFiltersProps = {
 	options?: ITourFilterOptions;
 	value: TTourFilters;
 	onChange: (value: TTourFilters) => void;
-	onApply: () => void;
 	onReset: () => void;
 	idPrefix: string;
+	footer?: ReactNode;
 };
 
-export default function TourFilters({ options, value, onChange, onApply, onReset, idPrefix }: TourFiltersProps) {
+// Changes apply right away; the page debounces the price range.
+export default function TourFilters({ options, value, onChange, onReset, idPrefix, footer }: TourFiltersProps) {
 	const divisions = options?.divisions ?? [];
 	const tourTypes = options?.tourTypes ?? [];
 	const locations = options?.locations ?? [];
@@ -199,9 +201,7 @@ export default function TourFilters({ options, value, onChange, onApply, onReset
 				/>
 			)}
 
-			<button type="button" onClick={onApply} className={primaryBtn}>
-				Apply filters
-			</button>
+			{footer}
 		</div>
 	);
 }

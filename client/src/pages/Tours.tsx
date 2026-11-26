@@ -5,6 +5,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Skeleton } from "@/components/ui/skeleton";
 import { inputCls, outlineBtn, primaryBtn } from "@/lib/ui-classes";
 import { cn } from "@/lib/utils";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useGetTourFilterOptionsQuery, useGetTourPagesInfiniteQuery } from "@/redux/features/Tour/tour.api";
 import { AlertCircle, Loader2, RefreshCw, Search, SearchX } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
@@ -54,8 +55,10 @@ export default function Tours() {
 
 	const [searchInput, setSearchInput] = useState(initialSearch);
 	const [searchTerm, setSearchTerm] = useState(initialSearch);
-	const [applied, setApplied] = useState<TTourFilters>(() => filtersFromParams(searchParams));
-	const [draft, setDraft] = useState<TTourFilters>(applied);
+	const [filters, setFilters] = useState<TTourFilters>(() => filtersFromParams(searchParams));
+	// wait until the user stops dragging or typing before asking for new prices
+	const minPrice = useDebouncedValue(filters.minPrice, 400);
+	const maxPrice = useDebouncedValue(filters.maxPrice, 400);
 	const [sort, setSort] = useState("-createdAt");
 	const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -63,11 +66,11 @@ export default function Tours() {
 		limit: LIMIT,
 		sort,
 		...(searchTerm && { searchTerm }),
-		...(applied.divisions.length > 0 && { division: applied.divisions.join(",") }),
-		...(applied.tourType && { tourType: applied.tourType }),
-		...(applied.location && { location: applied.location }),
-		...(applied.minPrice !== undefined && { minPrice: applied.minPrice }),
-		...(applied.maxPrice !== undefined && { maxPrice: applied.maxPrice }),
+		...(filters.divisions.length > 0 && { division: filters.divisions.join(",") }),
+		...(filters.tourType && { tourType: filters.tourType }),
+		...(filters.location && { location: filters.location }),
+		...(minPrice !== undefined && { minPrice }),
+		...(maxPrice !== undefined && { maxPrice }),
 	};
 	const { data, isLoading, isError, isFetching, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
 		useGetTourPagesInfiniteQuery(tourQuery);
@@ -75,7 +78,7 @@ export default function Tours() {
 
 	const tours = data?.pages.flatMap((pageData) => pageData.data) ?? [];
 	const total = data?.pages[0]?.meta?.total ?? 0;
-	const activeCount = countActiveFilters(applied);
+	const activeCount = countActiveFilters(filters);
 
 	// load the next page when the sentinel below the grid comes near the viewport
 	const sentinelRef = useRef<HTMLDivElement>(null);
@@ -97,14 +100,7 @@ export default function Tours() {
 		e.preventDefault();
 		setSearchTerm(searchInput.trim());
 	};
-	const handleApply = () => {
-		setApplied(draft);
-		setSheetOpen(false);
-	};
-	const handleReset = () => {
-		setDraft(emptyTourFilters);
-		setApplied(emptyTourFilters);
-	};
+	const handleReset = () => setFilters(emptyTourFilters);
 	const handleClearAll = () => {
 		handleReset();
 		setSearchInput("");
@@ -113,9 +109,8 @@ export default function Tours() {
 
 	const filterProps = {
 		options: filterOptions,
-		value: draft,
-		onChange: setDraft,
-		onApply: handleApply,
+		value: filters,
+		onChange: setFilters,
 		onReset: handleReset,
 	};
 
@@ -185,10 +180,7 @@ export default function Tours() {
 						<div className="flex items-center gap-2.5">
 							<Sheet
 								open={sheetOpen}
-								onOpenChange={(open) => {
-									if (open) setDraft(applied);
-									setSheetOpen(open);
-								}}
+								onOpenChange={setSheetOpen}
 							>
 								<SheetTrigger className={cn(outlineBtn, "flex-1 min-[981px]:hidden")}>
 									<svg
@@ -209,7 +201,15 @@ export default function Tours() {
 									<SheetHeader className="sr-only">
 										<SheetTitle>Filters</SheetTitle>
 									</SheetHeader>
-									<TourFilters {...filterProps} idPrefix="mob" />
+									<TourFilters
+										{...filterProps}
+										idPrefix="mob"
+										footer={
+											<button type="button" onClick={() => setSheetOpen(false)} className={primaryBtn}>
+												{isFetching && !isFetchingNextPage ? "Updating…" : `Show ${total} ${total === 1 ? "tour" : "tours"}`}
+											</button>
+										}
+									/>
 								</SheetContent>
 							</Sheet>
 
