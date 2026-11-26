@@ -5,6 +5,7 @@ import app from "./app";
 import { envVars } from "./app/config/env";
 import { connectRedis } from "./app/config/redis.config";
 import { startExpirePendingBookingsJob, stopExpirePendingBookingsJob } from "./app/jobs/expirePendingBookings";
+import { startRolloverTourDatesJob, stopRolloverTourDatesJob } from "./app/jobs/rolloverTourDates";
 
 let server: Server;
 
@@ -20,6 +21,7 @@ const startServer = async () => {
 		});
 
 		startExpirePendingBookingsJob();
+		startRolloverTourDatesJob();
 	} catch (error) {
 		console.error("Failed to start server", error);
 		process.exit(1);
@@ -30,6 +32,7 @@ startServer();
 
 process.on("SIGTERM", () => {
 	stopExpirePendingBookingsJob();
+	stopRolloverTourDatesJob();
 	console.log("SIGTERM signal recieved... Server shutting down..");
 
 	if (server) {
@@ -43,6 +46,7 @@ process.on("SIGTERM", () => {
 
 process.on("SIGINT", () => {
 	stopExpirePendingBookingsJob();
+	stopRolloverTourDatesJob();
 	console.log("SIGINT signal recieved... Server shutting down..");
 
 	if (server) {
