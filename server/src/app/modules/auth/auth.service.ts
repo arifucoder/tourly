@@ -124,11 +124,13 @@ const forgotPassword = async (email: string) => {
 
 	await sendEmail({
 		to: isUserExist.email,
-		subject: "Password Reset",
+		subject: "Reset your Tourly password",
 		templateName: "forgetPassword",
+		previewText: "Use this link to choose a new password. It expires in 10 minutes.",
 		templateData: {
 			name: isUserExist.name,
 			resetUILink,
+			expiresInMinutes: 10,
 		},
 	});
 };
