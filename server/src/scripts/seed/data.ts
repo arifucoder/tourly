@@ -520,6 +520,7 @@ export const tours: ISeedTour[] = [
 ];
 
 export type TSeedUserKey =
+	| "superadmin"
 	| "admin"
 	| "admin2"
 	| "guide"
@@ -548,6 +549,15 @@ export interface ISeedUser {
 const email = (local: string) => `${local}@${DEMO_EMAIL_DOMAIN}`;
 
 export const users: ISeedUser[] = [
+	{
+		key: "superadmin",
+		name: "Demo Super Admin",
+		email: email("superadmin"),
+		role: Role.SUPER_ADMIN,
+		phone: "+8801711000000",
+		address: "Gulshan, Dhaka",
+		joinedDaysAgo: 240,
+	},
 	{ key: "admin", name: "Nusrat Jahan", email: email("admin"), role: Role.ADMIN, phone: "+8801711000001", address: "Banani, Dhaka", joinedDaysAgo: 210 },
 	{ key: "admin2", name: "Fahim Chowdhury", email: email("ops"), role: Role.ADMIN, phone: "+8801711000002", address: "Agrabad, Chattogram", joinedDaysAgo: 120 },
 	{ key: "guide", name: "Rafiq Ahmed", email: email("guide"), role: Role.GUIDE, phone: "+8801811000003", address: "Kolatoli, Cox's Bazar", joinedDaysAgo: 190 },
