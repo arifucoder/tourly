@@ -10,7 +10,12 @@
 		"start": "node dist/server.js",
 		"lint": "npx eslint ./src",
 		"seed:admin": "tsx src/scripts/seedSuperAdmin.ts",
-		"seed:admin:prod": "node dist/seed-super-admin.js"
+		"seed:admin:prod": "node dist/seed-super-admin.js",
+		"seed": "tsx src/scripts/seed/index.ts",
+		"seed:fresh": "tsx src/scripts/seed/index.ts --fresh",
+		"seed:prod": "node dist/seed-demo.js",
+		"tours:rollover": "tsx src/scripts/rolloverTours.ts",
+		"tours:rollover:prod": "node dist/rollover-tours.js"
 	},
 	"keywords": [],
 	"author": "",

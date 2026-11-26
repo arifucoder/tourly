@@ -4,6 +4,8 @@ export default defineConfig({
 	entry: {
 		server: "src/server.ts",
 		"seed-super-admin": "src/scripts/seedSuperAdmin.ts",
+		"seed-demo": "src/scripts/seed/index.ts",
+		"rollover-tours": "src/scripts/rolloverTours.ts",
 	},
 	format: ["esm"],
 	target: "esnext",
