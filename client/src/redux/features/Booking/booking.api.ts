@@ -89,6 +89,10 @@ export const bookingApi = baseApi.injectEndpoints({
 			query: (bookingId) => ({ url: `/payment/init-payment/${bookingId}`, method: "POST" }),
 			transformResponse: (response: IResponse<{ paymentUrl: string }>) => response.data,
 		}),
+		getInvoiceUrl: builder.mutation<string, string>({
+			query: (paymentId) => ({ url: `/payment/invoice/${paymentId}`, method: "GET" }),
+			transformResponse: (response: IResponse<string>) => response.data,
+		}),
 		getAssignedBookings: builder.query<
 			{ data: IAssignedBooking[]; meta: IMeta },
 			{ scope: TAssignedScope; page?: number; limit?: number }
@@ -120,4 +124,5 @@ export const {
 	useGetMyBookingSummaryQuery,
 	useCancelMyBookingMutation,
 	useInitPaymentMutation,
+	useGetInvoiceUrlMutation,
 } = bookingApi;
