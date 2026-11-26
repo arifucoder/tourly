@@ -1,5 +1,54 @@
-<h1>Invoice for Booking ></h1>
-<p>Payment ID:</p>
-<p>Amount Paid:</p>
-<p>Thank you for your booking!</p>
-<p><a>Download Invoice PDF</a></p>
+<div style="display: inline-block; margin: 0 0 14px 0; padding: 4px 12px; border-radius: 999px; background-color: #e2f3ea; font-family: Arial, Helvetica, sans-serif; font-size: 12px; font-weight: bold; color: #1e7a4b">
+	&#10003; Payment received
+</div>
+<h1 class="h1" style="margin: 0 0 12px 0; font-family: Arial, Helvetica, sans-serif; font-size: 26px; line-height: 32px; font-weight: bold; color: #2d3134">
+	You're going to <%= tourTitle %>!
+</h1>
+<p style="margin: 0 0 24px 0">
+	Hi <%= userName %>, your booking is confirmed. Your invoice is attached to this email as a PDF.
+</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: separate">
+	<tr>
+		<td style="padding: 22px 24px; background-color: #fff1e8; border: 1px solid #ffd2b5; border-radius: 12px; font-family: Arial, Helvetica, sans-serif">
+			<div style="font-size: 12px; font-weight: bold; letter-spacing: 2px; color: #c2410c">BOOKING</div>
+			<div style="padding: 2px 0 14px 0; font-size: 19px; font-weight: bold; color: #2d3134"><%= bookingCode %></div>
+			<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size: 14px; line-height: 22px; color: #2d3134">
+				<tr><td style="padding: 3px 0; color: #676a6c" width="40%">Tour</td><td style="padding: 3px 0; font-weight: bold"><%= tourTitle %></td></tr>
+				<% if (tripDates) { %>
+				<tr><td style="padding: 3px 0; color: #676a6c">Dates</td><td style="padding: 3px 0; font-weight: bold"><%= tripDates %></td></tr>
+				<% } %>
+				<% if (route) { %>
+				<tr><td style="padding: 3px 0; color: #676a6c">Route</td><td style="padding: 3px 0; font-weight: bold"><%= route %></td></tr>
+				<% } %>
+				<tr><td style="padding: 3px 0; color: #676a6c">Guests</td><td style="padding: 3px 0; font-weight: bold"><%= guestCount %></td></tr>
+				<tr><td style="padding: 3px 0; color: #676a6c">Transaction</td><td style="padding: 3px 0"><%= transactionId %></td></tr>
+				<tr>
+					<td style="padding: 12px 0 0 0; border-top: 1px solid #ffd2b5; color: #2d3134; font-weight: bold">Total paid</td>
+					<td style="padding: 12px 0 0 0; border-top: 1px solid #ffd2b5; font-size: 20px; font-weight: bold; color: #c2410c"><%= totalLabel %></td>
+				</tr>
+			</table>
+		</td>
+	</tr>
+</table>
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 24px 0">
+	<tr>
+		<td style="background-color: #ff7b29; border-radius: 8px">
+			<a
+				href="<%= bookingUrl %>"
+				style="display: inline-block; padding: 13px 26px; font-family: Arial, Helvetica, sans-serif; font-size: 15px; font-weight: bold; color: #ffffff; text-decoration: none"
+				>View my booking</a
+			>
+		</td>
+	</tr>
+</table>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: separate">
+	<tr>
+		<td style="padding: 14px 16px; background-color: #f7f7f7; border-radius: 10px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 21px; color: #676a6c">
+			<strong style="color: #2d3134">What's next?</strong> We'll assign a verified local guide to your trip. Their name and
+			phone number appear on your booking page within 48 hours of departure.
+		</td>
+	</tr>
+</table>

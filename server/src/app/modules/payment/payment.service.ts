@@ -1,9 +1,10 @@
+import { envVars } from "../../config/env";
 import httpStatus from "http-status-codes";
 import { isValidObjectId, type Types } from "mongoose";
-import { uploadBufferToCloudinary } from "../../config/cloudinary.config";
+import { getSignedDownloadUrl, uploadBufferToCloudinary } from "../../config/cloudinary.config";
 import AppError from "../../errorHelpers/AppError";
 import { getTransactionId } from "../../utils/getTransactionId";
-import { generatePdf, type IInvoiceData } from "../../utils/invoice";
+import { formatBdt, formatTripDates, generatePdf, type IInvoiceData } from "../../utils/invoice";
 import { sendEmail } from "../../utils/sendEmail";
 import { BOOKING_STATUS } from "../booking/booking.interface";
 import { Booking } from "../booking/booking.model";
@@ -96,18 +97,33 @@ const isPaymentVerified = (gateway: ISSLValidationResponse, transactionId: strin
 const sendInvoice = async (paymentId: string) => {
 	const payment = await Payment.findById(paymentId);
 	const booking = await Booking.findById(payment?.booking)
-		.populate<{ tour: ITour }>("tour", "title")
-		.populate<{ user: IUser }>("user", "name email");
+		.populate<{ tour: ITour }>("tour", "title startDate endDate departureLocation arrivalLocation location")
+		.populate<{ user: IUser }>("user", "name email phone address");
 
 	if (!payment || !booking) return;
 
+	const { tour, user } = booking;
+	const route =
+		tour.departureLocation && tour.arrivalLocation
+			? `${tour.departureLocation} → ${tour.arrivalLocation}`
+			: (tour.location ?? undefined);
+
 	const invoiceData: IInvoiceData = {
-		bookingDate: booking.createdAt as Date,
-		guestCount: booking.guestCount,
-		totalAmount: payment.amount,
-		tourTitle: booking.tour.title,
+		invoiceNumber: booking.bookingCode,
 		transactionId: payment.transactionId,
-		userName: booking.user.name,
+		bookingDate: booking.createdAt as Date,
+		paidAt: (payment as { updatedAt?: Date }).updatedAt ?? new Date(),
+		userName: user.name,
+		userEmail: user.email,
+		userPhone: user.phone,
+		userAddress: user.address,
+		tourTitle: tour.title,
+		tourStartDate: tour.startDate,
+		tourEndDate: tour.endDate,
+		route,
+		guestCount: booking.guestCount,
+		unitPrice: booking.guestCount > 0 ? payment.amount / booking.guestCount : payment.amount,
+		totalAmount: payment.amount,
 	};
 
 	const pdfBuffer = await generatePdf(invoiceData);
@@ -118,11 +134,21 @@ const sendInvoice = async (paymentId: string) => {
 	}
 
 	await sendEmail({
-		to: booking.user.email,
-		subject: "Your Booking Invoice",
+		to: user.email,
+		subject: `Booking confirmed: ${tour.title} (${booking.bookingCode})`,
 		templateName: "invoice",
-		templateData: invoiceData,
-		attachments: [{ filename: "invoice.pdf", content: pdfBuffer, contentType: "application/pdf" }],
+		previewText: `Payment received — ${formatBdt(payment.amount)} for ${booking.guestCount} guest${booking.guestCount === 1 ? "" : "s"}. Invoice attached.`,
+		templateData: {
+			...invoiceData,
+			bookingCode: booking.bookingCode,
+			tripDates: formatTripDates(tour.startDate, tour.endDate),
+			route: route ?? "",
+			totalLabel: formatBdt(payment.amount),
+			bookingUrl: `${envVars.FRONTEND_URL}/user/bookings/${booking._id}`,
+		},
+		attachments: [
+			{ filename: `tourly-invoice-${booking.bookingCode}.pdf`, content: pdfBuffer, contentType: "application/pdf" },
+		],
 	});
 };
 
@@ -233,7 +259,7 @@ const getInvoiceDownloadUrl = async (paymentId: string, authUser: { userId: stri
 		throw new AppError(httpStatus.NOT_FOUND, "Invoice is not ready yet.");
 	}
 
-	return payment.invoiceUrl;
+	return getSignedDownloadUrl(payment.invoiceUrl);
 };
 
 export const PaymentService = {
