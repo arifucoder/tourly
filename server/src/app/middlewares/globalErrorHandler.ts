@@ -13,7 +13,7 @@ import type { TErrorSources } from "../interfaces/error.types";
 
 export const globalErrorHandler = async (err: any, req: Request, res: Response, next: NextFunction) => {
 	if (envVars.NODE_ENV === "development") {
-		console.log(err);
+		console.error(err);
 	}
 
 	if (req.file?.path) {

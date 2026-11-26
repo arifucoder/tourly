@@ -39,7 +39,6 @@ export const uploadBufferToCloudinary = async (
 				.end(buffer);
 		});
 	} catch (error: any) {
-		console.log(error);
 		throw new AppError(401, `Error uploading file ${error.message}`);
 	}
 };
@@ -64,14 +63,10 @@ export const deleteImageFromCLoudinary = async (url: string) => {
 		const regex = /\/upload\/(?:v\d+\/)?(.+?)\.[a-z0-9]+$/i;
 		const match = url.match(regex);
 
-		if (!match?.[1]) {
-			console.warn("Could not extract public_id from:", url);
-			return;
-		}
+		// not a Cloudinary upload (e.g. seeded Unsplash image): nothing to delete
+		if (!match?.[1]) return;
 
-		const public_id = match[1];
-		const result = await cloudinary.uploader.destroy(public_id);
-		console.log(`Cloudinary destroy ${public_id}:`, result);
+		await cloudinary.uploader.destroy(match[1]);
 	} catch (error: any) {
 		throw new AppError(401, "Cloudinary image deletion failed", error.message);
 	}

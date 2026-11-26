@@ -56,7 +56,7 @@ export const sendEmail = async ({
 			bodyHtml,
 		});
 
-		const info = await transporter.sendMail({
+		await transporter.sendMail({
 			from: { name: "Tourly", address: envVars.SMTP_FROM },
 			to: to,
 			subject: subject,
@@ -67,9 +67,8 @@ export const sendEmail = async ({
 				contentType: attachment.contentType,
 			})),
 		});
-		console.log(`\u2709\uFE0F Email sent to ${to}: ${info.messageId}`);
 	} catch (error: any) {
-		console.log("email sending error", error.message);
+		console.error("Email sending failed", error.message);
 		throw new AppError(500, "Failed to send email");
 	}
 };

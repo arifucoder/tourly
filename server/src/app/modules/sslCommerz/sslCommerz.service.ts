@@ -57,7 +57,7 @@ const sslPaymentInit = async (payload: ISSLCommerz) => {
 
 		return result.GatewayPageURL;
 	} catch (error: any) {
-		console.log("Payment Error Occurred", error);
+		console.error("SSLCommerz init failed", error);
 		throw new AppError(httpStatus.BAD_REQUEST, error.message);
 	}
 };

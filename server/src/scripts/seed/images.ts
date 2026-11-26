@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { v2 as cloudinary } from "cloudinary";
 import "../../app/config/cloudinary.config";
 
