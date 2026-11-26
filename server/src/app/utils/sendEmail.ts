@@ -24,6 +24,7 @@ interface SendEmailOptions {
 	subject: string;
 	templateName: string;
 	templateData?: Record<string, any>;
+	previewText?: string;
 	attachments?: {
 		filename: string;
 		content: Buffer | string;
@@ -31,13 +32,32 @@ interface SendEmailOptions {
 	}[];
 }
 
-export const sendEmail = async ({ to, subject, templateName, templateData, attachments }: SendEmailOptions) => {
+const templatePath = (name: string) => path.join(__dirname, "templates", `${name}.ejs`);
+
+export const sendEmail = async ({
+	to,
+	subject,
+	templateName,
+	templateData,
+	previewText,
+	attachments,
+}: SendEmailOptions) => {
 	try {
-		const templatePath = path.join(__dirname, `templates/${templateName}.ejs`);
-		const html = await ejs.renderFile(templatePath, templateData);
+		const common = {
+			frontendUrl: envVars.FRONTEND_URL,
+			supportEmail: envVars.SMTP_FROM,
+			year: new Date().getFullYear(),
+		};
+		const bodyHtml = await ejs.renderFile(templatePath(templateName), { ...common, ...templateData });
+		const html = await ejs.renderFile(templatePath("layout"), {
+			...common,
+			title: subject,
+			previewText: previewText ?? subject,
+			bodyHtml,
+		});
 
 		const info = await transporter.sendMail({
-			from: envVars.SMTP_FROM,
+			from: { name: "Tourly", address: envVars.SMTP_FROM },
 			to: to,
 			subject: subject,
 			html: html,
