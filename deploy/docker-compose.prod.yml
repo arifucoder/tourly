@@ -1,0 +1,73 @@
+# Production (VPS): mongo + redis + api + web. Images are built by GitHub Actions and pulled from GHCR.
+# The host nginx (/etc/nginx/sites-available/tourly) sends /api → 127.0.0.1:5200 and everything else → 127.0.0.1:3200.
+# NEVER run `docker compose down -v` here — it deletes the database volume.
+name: tourly
+
+services:
+  mongo:
+    image: mongo:8
+    restart: unless-stopped
+    env_file: .env.db
+    # single-node replica set: Mongoose transactions (booking + payment) need one
+    entrypoint: ["bash", "-c"]
+    command:
+      - |
+        if [ ! -f /data/configdb/keyfile ]; then head -c 512 /dev/urandom | base64 | tr -d '\n' > /data/configdb/keyfile; fi
+        chmod 400 /data/configdb/keyfile && chown 999:999 /data/configdb/keyfile
+        exec docker-entrypoint.sh mongod --replSet rs0 --keyFile /data/configdb/keyfile --bind_ip_all --wiredTigerCacheSizeGB 0.25
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+    # only for an SSH tunnel from your laptop (Compass): mongodb://...@127.0.0.1:27018/?authSource=admin&directConnection=true
+    ports:
+      - "127.0.0.1:27018:27017"
+    healthcheck:
+      # healthy only when this node is PRIMARY; the first run also starts the replica set
+      test:
+        - CMD-SHELL
+        - >-
+          mongosh --quiet -u "$$MONGO_INITDB_ROOT_USERNAME" -p "$$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin
+          --eval "try { quit(rs.status().myState === 1 ? 0 : 1) } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }] }); quit(1) }"
+      interval: 10s
+      timeout: 10s
+      start_period: 40s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    env_file: .env.db
+    command: ["sh", "-c", 'exec redis-server --requirepass "$$REDIS_PASSWORD" --appendonly yes']
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", 'redis-cli -a "$$REDIS_PASSWORD" --no-auth-warning ping | grep -q PONG']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  api:
+    image: ghcr.io/arifucoder/tourly-api:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env.api
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:5200:5000" # only the host's nginx can reach it
+
+  web:
+    image: ghcr.io/arifucoder/tourly-web:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3200:8080"
+
+volumes:
+  mongo-data:
+  mongo-config:
+  redis-data:
